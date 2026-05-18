@@ -463,6 +463,21 @@ src/
 - How much of the OpenAI Playground's prompt optimization/evaluation surface should be included in the one-pass build?
 - Which local server CORS configuration snippets should be documented inside the UI for LM Studio, Ollama, and vLLM?
 
+## MVP Decisions
+
+Keep the first implementation simple and predictable:
+
+- CORS: the app shows clear diagnostics and short copyable hints. It does not try to bypass CORS or proxy requests.
+- Run persistence: run results stay browser-local by default. Users explicitly export/download run records when they want them version-controlled.
+- Directory save behavior: if the browser has a file handle and permission, `Save` writes back to the source file. `Save as` always creates/downloads a separate file.
+- Prompt workspace format: a `*.prompt.json` stores one self-contained tab by default. Multi-tab workspaces remain supported by schema but are not the default save action.
+- Request editing source of truth: raw JSON is authoritative. Structured controls update JSON; valid JSON edits rehydrate controls. Invalid JSON blocks runs and save-back until fixed.
+- Unsupported API shapes: the app loads, validates, edits, and saves unsupported shapes, but does not automatically transform between API shapes in the MVP.
+- Streaming history: if a streaming run is cancelled or fails, keep the partial output in browser-local run history and mark the run status accurately.
+- Auth UX: auth fields are per endpoint preset, stored only in browser-local state, and redacted from exports by default.
+- Examples: include simple examples for LM Studio chat completions, Ollama chat, vLLM/OpenAI-compatible chat completions, and Responses API import/edit.
+- Non-goals: no backend, no hosted proxy, no server-side secret storage, no automatic Git commits, and no automatic prompt optimization/evaluation flow.
+
 ## Recommended Delivery
 
 Use a React TypeScript browser-only UI. The app should run as static web assets and use direct browser APIs for endpoint calls, streaming, import/export, save-back where available, and local draft persistence. Local server CORS support is a hard prerequisite for direct execution; the app should detect and explain CORS/connectivity failures.
