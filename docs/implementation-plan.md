@@ -13,6 +13,7 @@ The app should let a user:
 - Discover available models from the selected endpoint where possible.
 - Create a prompt/request in an OpenAI Playground-like UI.
 - Load a JSON request file and automatically detect its API shape.
+- Load prompt/request files from user-selected directories outside the playground repository.
 - Edit the request through structured UI controls and raw JSON when needed.
 - Run the request against the selected local model endpoint.
 - Save prompts, requests, responses, and revisions as downloadable/importable files that can be committed normally.
@@ -181,9 +182,11 @@ The imported JSON file should remain the source of truth until the user saves a 
 
 ## Version-Controlled File Model
 
-Use plain files so Git captures every prompt and request change. Because the app is browser-only, it cannot run Git or freely write arbitrary local paths. Version control is handled by letting users import files, edit them in browser tabs, then download/save updated artifacts back into their Git working tree.
+Use plain files so Git captures every prompt and request change. Because the app is browser-only, it cannot run Git or freely write arbitrary local paths. Version control is handled by letting users import files or user-selected directories, edit them in browser tabs, then download/save updated artifacts back into the relevant Git working tree.
 
-Suggested repo/user workspace structure:
+The playground repository is not the only valid prompt source. Users must be able to load prompt/request files from any directory they choose, including another repo, a mounted model-eval corpus, a scratch directory, or a downloaded prompt bundle.
+
+Suggested repo/user workspace structure for any selected directory:
 
 ```text
 playground/
@@ -224,6 +227,25 @@ Use a metadata envelope only when needed:
 
 The loader should also accept raw API request JSON without the envelope.
 
+## External Directory Loading
+
+Directory support should use browser-native capabilities:
+
+- If the File System Access API is available, let users select a directory with `showDirectoryPicker()`.
+- Recursively discover supported files under that directory, with clear filters for `*.prompt.json`, `*.request.json`, `*.run.json`, endpoint preset JSON, and raw JSON.
+- Keep directory handles browser-local so the app can restore recently opened directories after the browser grants permission again.
+- Preserve the original directory-relative path on each opened tab.
+- Save back to the original file handle when permission exists.
+- Fall back to download/save-as when direct save-back is unavailable.
+- If File System Access API is unavailable, support multi-file import and zip/bundle import so users can still load prompts from external folders.
+
+The UI should distinguish:
+
+- App examples bundled with the playground.
+- Browser-local drafts.
+- Files imported from a user-selected external directory.
+- Files created in the app but not yet saved to any directory.
+
 ## Storage Strategy
 
 Use two layers:
@@ -258,6 +280,7 @@ Browser-only implementation:
 - Browser `fetch` for local endpoint calls.
 - Browser File API for import.
 - File System Access API where supported for direct save-back to user-selected files.
+- File System Access API directory handles where supported for external prompt/request directories.
 - Download fallback for browsers without File System Access API.
 - IndexedDB or localStorage for open tabs, endpoint presets, drafts, and run history.
 
@@ -318,6 +341,7 @@ The implementation pass should deliver:
 - Direct browser execution for local endpoint calls, streaming, cancellation, and redacted logging.
 - Execution against LM Studio/vLLM chat completions and Ollama native chat, with response, raw JSON, timing, and error display.
 - Import/export file browser for prompts, requests, endpoint presets, and run records.
+- External directory picker for prompt/request directories outside the playground repo.
 - Save, save-as, duplicate, rename-in-app, delete-in-app, and load flows for browser-managed tabs and user-managed files.
 - Dirty state and file-handle indicators for imported files.
 - Redaction checks before saving request and run artifacts.
@@ -365,6 +389,7 @@ src/
       fileImport.ts
       fileExport.ts
       fileHandles.ts
+      directoryImport.ts
   shared/
     json.ts
     redaction.ts
