@@ -35,7 +35,7 @@ test.describe("browser playground", () => {
 
   test("runs an OpenAI-compatible prompt from the browser", async ({ page }) => {
     let requestBody = "";
-    await page.route("http://127.0.0.1:1234/v1/chat/completions", async (route) => {
+    await page.route("http://127.0.0.1:4321/v1/chat/completions", async (route) => {
       requestBody = route.request().postData() ?? "";
       await route.fulfill({
         status: 200,
@@ -50,6 +50,7 @@ test.describe("browser playground", () => {
     });
 
     await page.goto("/");
+    await page.getByLabel("Endpoint base URL").fill("http://127.0.0.1:4321/v1");
     await page.getByLabel("Chat composer").fill("Say pong through the composer.");
     await page.getByLabel("Run").click();
 

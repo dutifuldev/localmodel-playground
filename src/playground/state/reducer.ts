@@ -1,6 +1,7 @@
 import type { JsonObject } from "../../shared/json";
 import type {
   ApiShapeId,
+  EndpointPreset,
   PlaygroundState,
   PlaygroundTab,
   RunRecord,
@@ -20,6 +21,11 @@ export type PlaygroundAction =
       readonly patch: Partial<PlaygroundTab>;
     }
   | {
+      readonly type: "update-endpoint";
+      readonly endpointId: string;
+      readonly patch: Partial<EndpointPreset>;
+    }
+  | {
       readonly type: "open-request";
       readonly title: string;
       readonly request: JsonObject;
@@ -33,10 +39,27 @@ export type PlaygroundAction =
 export const playgroundReducer = (
   state: PlaygroundState,
   action: PlaygroundAction,
-): PlaygroundState =>
-  action.type === "open-tab" ? openTab(state, action.tab) : reduceBaseAction(state, action);
+): PlaygroundState => reduceOuterAction(state, action);
 
-type BaseAction = Exclude<PlaygroundAction, { readonly type: "open-tab" }>;
+const reduceOuterAction = (
+  state: PlaygroundState,
+  action: PlaygroundAction,
+): PlaygroundState => {
+  if (action.type === "open-tab") {
+    return openTab(state, action.tab);
+  }
+
+  if (action.type === "update-endpoint") {
+    return updateEndpoint(state, action.endpointId, action.patch);
+  }
+
+  return reduceBaseAction(state, action);
+};
+
+type BaseAction = Exclude<
+  PlaygroundAction,
+  { readonly type: "open-tab" } | { readonly type: "update-endpoint" }
+>;
 
 const reduceBaseAction = (state: PlaygroundState, action: BaseAction): PlaygroundState => {
   switch (action.type) {
@@ -129,6 +152,17 @@ const updateTab = (
 ): PlaygroundState => ({
   ...state,
   tabs: state.tabs.map((tab) => (tab.id === tabId ? { ...tab, ...patch } : tab)),
+});
+
+const updateEndpoint = (
+  state: PlaygroundState,
+  endpointId: string,
+  patch: Partial<EndpointPreset>,
+): PlaygroundState => ({
+  ...state,
+  endpointPresets: state.endpointPresets.map((endpoint) =>
+    endpoint.id === endpointId ? { ...endpoint, ...patch } : endpoint,
+  ),
 });
 
 const recordRun = (state: PlaygroundState, tabId: string, run: RunRecord): PlaygroundState => ({

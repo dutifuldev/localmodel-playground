@@ -261,6 +261,13 @@ export const App = (): React.JSX.Element => {
           modelStatus={modelStatus}
           activeTab={activeTab}
           onEndpointChange={(endpointId) => updateActiveTab({ endpointPresetId: endpointId })}
+          onEndpointBaseUrlChange={(baseUrl) =>
+            dispatch({
+              type: "update-endpoint",
+              endpointId: activeEndpoint.id,
+              patch: { baseUrl },
+            })
+          }
           onModelChange={(model) => updateForm({ ...formState, model })}
           onDiscoverModels={() => void loadModels()}
           onImportFile={(file) => void importSingle(file)}
@@ -401,6 +408,7 @@ type SidebarProps = {
   readonly activeTab: PlaygroundTab;
   readonly directoryAvailable: boolean;
   readonly onEndpointChange: (endpointId: string) => void;
+  readonly onEndpointBaseUrlChange: (baseUrl: string) => void;
   readonly onModelChange: (model: string) => void;
   readonly onDiscoverModels: () => void;
   readonly onImportFile: (file: File | undefined) => void;
@@ -423,7 +431,11 @@ const Sidebar = (props: SidebarProps): React.JSX.Element => (
           </option>
         ))}
       </select>
-      <code>{props.activeEndpoint.baseUrl}</code>
+      <input
+        value={props.activeEndpoint.baseUrl}
+        onChange={(event) => props.onEndpointBaseUrlChange(event.currentTarget.value)}
+        aria-label="Endpoint base URL"
+      />
       <button type="button" className="full-button" onClick={props.onDiscoverModels}>
         Discover models
       </button>

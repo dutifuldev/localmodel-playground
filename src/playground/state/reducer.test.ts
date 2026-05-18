@@ -81,6 +81,20 @@ describe("playground reducer", () => {
     expect(confirmed.tabs).toHaveLength(1);
   });
 
+  it("updates endpoint details without changing tab ownership", () => {
+    const state = createDefaultState();
+    const updated = playgroundReducer(state, {
+      type: "update-endpoint",
+      endpointId: "lmstudio-local",
+      patch: { baseUrl: "http://100.119.251.79:1234/v1" },
+    });
+
+    expect(updated.tabs[0]?.endpointPresetId).toBe("lmstudio-local");
+    expect(
+      updated.endpointPresets.find((endpoint) => endpoint.id === "lmstudio-local")?.baseUrl,
+    ).toBe("http://100.119.251.79:1234/v1");
+  });
+
   it("opens imported requests and stores completed run details on the owning tab", () => {
     const initial = createDefaultState();
     const opened = playgroundReducer(initial, {
