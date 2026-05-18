@@ -40,7 +40,44 @@ describe("model discovery", () => {
       ok: true,
       models: ["lmstudio-model"],
     });
-    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:1234/v1/models");
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:1234/v1/models", {
+      headers: { "content-type": "application/json" },
+    });
+  });
+
+  it("includes endpoint auth headers during discovery", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json({
+            data: [{ id: "private-model" }],
+          }),
+        ),
+      ),
+    );
+
+    const endpoint = defaultEndpointPresets[3];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    await expect(
+      discoverModels({
+        ...endpoint,
+        auth: { type: "bearer", token: "token-123", exportable: false },
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      models: ["private-model"],
+    });
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:8000/v1/models", {
+      headers: {
+        authorization: "Bearer token-123",
+        "content-type": "application/json",
+      },
+    });
   });
 
   it("supports manual discovery and thrown fetch failures", async () => {

@@ -25,12 +25,18 @@ export type PlaygroundAction =
       readonly apiShape: ApiShapeId;
       readonly source: SourceRef;
     }
+  | { readonly type: "open-tab"; readonly tab: PlaygroundTab }
   | { readonly type: "record-run"; readonly tabId: string; readonly run: RunRecord };
 
 export const playgroundReducer = (
   state: PlaygroundState,
   action: PlaygroundAction,
-): PlaygroundState => {
+): PlaygroundState =>
+  action.type === "open-tab" ? openTab(state, action.tab) : reduceBaseAction(state, action);
+
+type BaseAction = Exclude<PlaygroundAction, { readonly type: "open-tab" }>;
+
+const reduceBaseAction = (state: PlaygroundState, action: BaseAction): PlaygroundState => {
   switch (action.type) {
     case "add-tab": {
       const tab = createDefaultTab(state.tabs.length + 1);
@@ -52,6 +58,12 @@ export const playgroundReducer = (
       return recordRun(state, action.tabId, action.run);
   }
 };
+
+const openTab = (state: PlaygroundState, tab: PlaygroundTab): PlaygroundState => ({
+  ...state,
+  tabs: [...state.tabs, tab],
+  activeTabId: tab.id,
+});
 
 const closeTab = (state: PlaygroundState, tabId: string): PlaygroundState => {
   if (state.tabs.length === 1) {

@@ -60,6 +60,10 @@ const extractStreamingText = (value: JsonValue): string => {
     return value.response;
   }
 
+  if (typeof value.delta === "string") {
+    return value.delta;
+  }
+
   const message = value.message;
   if (isJsonObject(message) && typeof message.content === "string") {
     return message.content;
@@ -76,8 +80,8 @@ const extractStreamingText = (value: JsonValue): string => {
 const firstChoiceDeltaText = (choices: readonly JsonValue[]): string => {
   const first = choices.find(isJsonObject);
   const delta = first?.delta;
-  if (!isJsonObject(delta)) {
-    return "";
+  if (isJsonObject(delta) && typeof delta.content === "string") {
+    return delta.content;
   }
-  return typeof delta.content === "string" ? delta.content : "";
+  return typeof first?.text === "string" ? first.text : "";
 };

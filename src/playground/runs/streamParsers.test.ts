@@ -23,6 +23,24 @@ describe("stream parsers", () => {
     expect(parseNdjsonText("not-json\n").events).toEqual([]);
   });
 
+  it("extracts OpenAI completions and Responses streaming deltas", () => {
+    const completions = parseSseText(
+      ['data: {"choices":[{"text":"hel"}]}', "", 'data: {"choices":[{"text":"lo"}]}'].join(
+        "\n",
+      ),
+    );
+    const responses = parseSseText(
+      [
+        'data: {"type":"response.output_text.delta","delta":"hi "}',
+        "",
+        'data: {"type":"response.output_text.delta","delta":"there"}',
+      ].join("\n"),
+    );
+
+    expect(completions.text).toBe("hello");
+    expect(responses.text).toBe("hi there");
+  });
+
   it("extracts text from Ollama NDJSON chunks", () => {
     const parsed = parseNdjsonText(
       ['{"message":{"content":"hi "}}', '{"response":"there"}', '{"done":true}'].join("\n"),

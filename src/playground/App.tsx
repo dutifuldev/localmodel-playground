@@ -26,7 +26,7 @@ import { discoverModels } from "./endpoints/modelDiscovery";
 import { endpointSupportsShape } from "./endpoints/providers";
 import { canPickDirectory, pickDirectoryRequests } from "./files/directoryImport";
 import { downloadJson, runRecordFileName, tabToPromptWorkspace } from "./files/fileExport";
-import { importManyFiles, importRequestFile } from "./files/fileImport";
+import { importManyFiles, importRequestFile, type ImportedRequest } from "./files/fileImport";
 import {
   formStateToRequest,
   requestToFormState,
@@ -65,6 +65,7 @@ export const App = (): React.JSX.Element => {
     () => (activeTab ? requestToFormState(activeTab.apiShape, activeTab.request) : undefined),
     [activeTab],
   );
+  const requestIsValid = jsonError === undefined;
 
   if (!activeTab || !activeEndpoint || !formState) {
     return <div className="boot-error">No active playground tab.</div>;
@@ -101,6 +102,10 @@ export const App = (): React.JSX.Element => {
   };
 
   const runActiveTab = async (): Promise<void> => {
+    if (!requestIsValid) {
+      return;
+    }
+
     if (!endpointSupportsShape(activeEndpoint, activeTab.apiShape)) {
       const run: RunRecord = {
         schemaVersion: 1,
@@ -170,7 +175,7 @@ export const App = (): React.JSX.Element => {
     }
     const imported = await importManyFiles(Array.from(files));
     for (const item of imported) {
-      dispatch({ type: "open-request", ...item });
+      openImportedRequest(item);
     }
   };
 
@@ -179,14 +184,22 @@ export const App = (): React.JSX.Element => {
       return;
     }
     const imported = await importRequestFile(file);
-    dispatch({ type: "open-request", ...imported });
+    openImportedRequest(imported);
   };
 
   const importDirectory = async (): Promise<void> => {
     const imported = await pickDirectoryRequests();
     for (const item of imported) {
-      dispatch({ type: "open-request", ...item });
+      openImportedRequest(item);
     }
+  };
+
+  const openImportedRequest = (item: ImportedRequest): void => {
+    if (item.tab) {
+      dispatch({ type: "open-tab", tab: item.tab });
+      return;
+    }
+    dispatch({ type: "open-request", ...item });
   };
 
   return (
@@ -259,6 +272,7 @@ export const App = (): React.JSX.Element => {
               <button
                 type="button"
                 className="soft-button strong"
+                disabled={!requestIsValid}
                 onClick={() =>
                   downloadJson(
                     `${activeTab.title}.prompt.json`,
@@ -288,7 +302,12 @@ export const App = (): React.JSX.Element => {
               onRawJsonChange={applyRawJson}
               onImportFiles={(files) => void importFiles(files)}
             />
-            <ResponsePanel tab={activeTab} onRun={() => void runActiveTab()} onStop={stopRun} />
+            <ResponsePanel
+              tab={activeTab}
+              canRun={requestIsValid}
+              onRun={() => void runActiveTab()}
+              onStop={stopRun}
+            />
           </div>
         </section>
       </main>
@@ -610,6 +629,7 @@ const Section = (props: {
 
 const ResponsePanel = (props: {
   readonly tab: PlaygroundTab;
+  readonly canRun: boolean;
   readonly onRun: () => void;
   readonly onStop: () => void;
 }): React.JSX.Element => {
@@ -642,7 +662,13 @@ const ResponsePanel = (props: {
               <Square size={18} />
             </button>
           ) : (
-            <button className="run-button" type="button" onClick={props.onRun} aria-label="Run">
+            <button
+              className="run-button"
+              type="button"
+              onClick={props.onRun}
+              aria-label="Run"
+              disabled={!props.canRun}
+            >
               <Play size={18} />
             </button>
           )}

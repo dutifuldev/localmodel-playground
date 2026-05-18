@@ -1,5 +1,6 @@
 import { isJsonObject, type JsonValue } from "../../shared/json";
 import type { EndpointPreset } from "../../shared/types";
+import { openAiRequestHeaders } from "../requests/adapters/openaiHeaders";
 import { normalizeBaseUrl } from "./providers";
 
 type ModelDiscoveryResult =
@@ -15,7 +16,7 @@ export const discoverModels = async (
 
   const url = `${normalizeBaseUrl(endpoint.baseUrl)}${endpoint.modelDiscovery.path}`;
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { headers: openAiRequestHeaders(endpoint) });
     if (!response.ok) {
       return {
         ok: false,
