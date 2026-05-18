@@ -74,10 +74,8 @@ describe("request form mapping", () => {
         messages: [{ id: "message_0", role: "user", content: "Make a plan" }],
       },
     );
-    expect(responses.input).toEqual([
-      { role: "developer", content: "Use JSON." },
-      { role: "user", content: "Make a plan" },
-    ]);
+    expect(responses["instructions"]).toBe("Use JSON.");
+    expect(responses.input).toEqual([{ role: "user", content: "Make a plan" }]);
 
     const ollama = formStateToRequest(
       "ollama.generate.v1",
@@ -110,6 +108,48 @@ describe("request form mapping", () => {
         { ...form, model: "changed" },
       ).input,
     ).toEqual([{ role: "user", content: "Keep this response prompt" }]);
+  });
+
+  it("surfaces native instruction fields and clears them through structured edits", () => {
+    const responsesForm = requestToFormState("openai.responses.v1", {
+      model: "local",
+      instructions: "Native instructions",
+      input: "Ask this",
+    });
+    expect(responsesForm.developerMessage).toBe("Native instructions");
+    expect(responsesForm.messages).toEqual([
+      { id: "message_1", role: "user", content: "Ask this" },
+    ]);
+    const responses = formStateToRequest(
+      "openai.responses.v1",
+      {},
+      {
+        ...responsesForm,
+        developerMessage: "",
+      },
+    );
+    expect(responses["instructions"]).toBeUndefined();
+    expect(responses.input).toEqual([{ role: "user", content: "Ask this" }]);
+
+    const ollamaForm = requestToFormState("ollama.generate.v1", {
+      model: "llama",
+      system: "Native system",
+      prompt: "Generate this",
+    });
+    expect(ollamaForm.developerMessage).toBe("Native system");
+    expect(ollamaForm.messages).toEqual([
+      { id: "message_1", role: "user", content: "Generate this" },
+    ]);
+    const ollama = formStateToRequest(
+      "ollama.generate.v1",
+      { system: "stale" },
+      {
+        ...ollamaForm,
+        developerMessage: "",
+      },
+    );
+    expect(ollama["system"]).toBeUndefined();
+    expect(ollama.prompt).toBe("Generate this");
   });
 
   it("preserves prompt text for prompt-based APIs when form fields change", () => {

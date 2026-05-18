@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createDefaultState } from "./defaults";
 import { loadPlaygroundState, savePlaygroundState } from "./storage";
@@ -6,6 +6,10 @@ import { loadPlaygroundState, savePlaygroundState } from "./storage";
 describe("playground storage", () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("returns a default state when nothing valid is stored", () => {
@@ -145,5 +149,72 @@ describe("playground storage", () => {
     });
 
     expect(loadPlaygroundState().tabs[0]?.currentRun).toBeUndefined();
+  });
+
+  it("keeps the app running when browser storage throws", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    expect(loadPlaygroundState().tabs[0]?.title).toBe("New prompt");
+    vi.restoreAllMocks();
+
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+    let calls = 0;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      calls += 1;
+      if (calls === 1) {
+        throw new DOMException("full", "QuotaExceededError");
+      }
+      void this;
+      originalSetItem(key, value);
+    });
+
+    const state = createDefaultState();
+    const tab = state.tabs[0];
+    expect(tab).toBeDefined();
+    if (!tab) {
+      return;
+    }
+
+    expect(() =>
+      savePlaygroundState({
+        ...state,
+        tabs: [
+          {
+            ...tab,
+            lastRun: {
+              schemaVersion: 1,
+              id: "run_large",
+              startedAt: "2026-05-18T00:00:00.000Z",
+              endpointPresetId: tab.endpointPresetId,
+              apiShape: tab.apiShape,
+              requestHash: "hash",
+              status: "succeeded",
+              response: { output: "large" },
+            },
+            runHistory: [
+              {
+                schemaVersion: 1,
+                id: "run_large",
+                startedAt: "2026-05-18T00:00:00.000Z",
+                endpointPresetId: tab.endpointPresetId,
+                apiShape: tab.apiShape,
+                requestHash: "hash",
+                status: "succeeded",
+                response: { output: "large" },
+              },
+            ],
+          },
+        ],
+      }),
+    ).not.toThrow();
+
+    const stored = loadPlaygroundState();
+    expect(stored.tabs[0]?.lastRun).toBeUndefined();
+    expect(stored.tabs[0]?.runHistory).toEqual([]);
   });
 });

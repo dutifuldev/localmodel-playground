@@ -5,7 +5,7 @@ import { createDefaultState } from "./defaults";
 const stateKey = "localmodel-playground-state-v1";
 
 export const loadPlaygroundState = (): PlaygroundState => {
-  const source = localStorage.getItem(stateKey);
+  const source = storedStateSource();
   if (!source) {
     return createDefaultState();
   }
@@ -19,7 +19,27 @@ export const loadPlaygroundState = (): PlaygroundState => {
 };
 
 export const savePlaygroundState = (state: PlaygroundState): void => {
-  localStorage.setItem(stateKey, JSON.stringify(persistableState(state)));
+  if (trySaveState(persistableState(state))) {
+    return;
+  }
+  trySaveState(compactPersistableState(state));
+};
+
+const storedStateSource = (): string | null => {
+  try {
+    return localStorage.getItem(stateKey);
+  } catch {
+    return null;
+  }
+};
+
+const trySaveState = (state: PlaygroundState): boolean => {
+  try {
+    localStorage.setItem(stateKey, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 const persistableState = (state: PlaygroundState): PlaygroundState => ({
@@ -28,6 +48,15 @@ const persistableState = (state: PlaygroundState): PlaygroundState => ({
     const { currentRun: _currentRun, ...rest } = tab;
     void _currentRun;
     return rest;
+  }),
+});
+
+const compactPersistableState = (state: PlaygroundState): PlaygroundState => ({
+  ...state,
+  tabs: persistableState(state).tabs.map((tab) => {
+    const { lastRun: _lastRun, ...rest } = tab;
+    void _lastRun;
+    return { ...rest, runHistory: [] };
   }),
 });
 

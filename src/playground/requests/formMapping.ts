@@ -49,19 +49,42 @@ const readStream = (apiShape: ApiShapeId, request: JsonObject): boolean => {
 };
 
 const messageSource = (apiShape: ApiShapeId, request: JsonObject): JsonValue | undefined => {
-  if (apiShape === "openai.responses.v1") {
-    return typeof request.input === "string"
+  switch (apiShape) {
+    case "openai.responses.v1":
+      return responsesMessageSource(request);
+    case "ollama.generate.v1":
+      return ollamaGenerateMessageSource(request);
+    case "openai.completions.v1":
+      return typeof request.prompt === "string"
+        ? [{ role: "user", content: request.prompt }]
+        : request.messages;
+    default:
+      return request.messages;
+  }
+};
+
+const responsesMessageSource = (request: JsonObject): JsonValue[] => {
+  const input =
+    typeof request.input === "string"
       ? [{ role: "user", content: request.input }]
-      : request.input;
-  }
+      : messageArray(request.input);
+  return prependInstruction("developer", request["instructions"], input);
+};
 
-  if (apiShape === "openai.completions.v1" || apiShape === "ollama.generate.v1") {
-    return typeof request.prompt === "string"
+const ollamaGenerateMessageSource = (request: JsonObject): JsonValue[] => {
+  const input =
+    typeof request.prompt === "string"
       ? [{ role: "user", content: request.prompt }]
-      : request.messages;
-  }
+      : messageArray(request.messages);
+  return prependInstruction("system", request["system"], input);
+};
 
-  return request.messages;
+const prependInstruction = (
+  role: "developer" | "system",
+  content: JsonValue | undefined,
+  input: JsonValue[],
+): JsonValue[] => {
+  return typeof content === "string" && content.trim() ? [{ role, content }, ...input] : input;
 };
 
 export const formStateToRequest = (
@@ -80,22 +103,53 @@ export const formStateToRequest = (
   }
 
   if (apiShape === "openai.responses.v1") {
-    next.input = [...buildMessages(form, "developer")];
-    return next;
+    return writeResponsesRequest(next, form);
   }
 
   if (apiShape === "openai.completions.v1" || apiShape === "ollama.generate.v1") {
-    next.prompt = promptFromForm(form, apiShape !== "ollama.generate.v1");
-    if (apiShape === "ollama.generate.v1" && form.developerMessage.trim()) {
-      next["system"] = form.developerMessage;
-    }
-    return next;
+    return writePromptRequest(next, apiShape, form);
   }
 
   next.messages = [
     ...buildMessages(form, apiShape.startsWith("openai") ? "developer" : "system"),
   ];
   return next;
+};
+
+const writeResponsesRequest = (next: MutableJsonObject, form: RequestFormState): JsonObject => {
+  const instructions = form.developerMessage.trim();
+  if (instructions) {
+    next["instructions"] = instructions;
+  } else {
+    delete next["instructions"];
+  }
+  next.input = form.messages.map((message) => ({
+    role: message.role,
+    content: message.content,
+  }));
+  return next;
+};
+
+const writePromptRequest = (
+  next: MutableJsonObject,
+  apiShape: ApiShapeId,
+  form: RequestFormState,
+): JsonObject => {
+  const isOllamaGenerate = apiShape === "ollama.generate.v1";
+  next.prompt = promptFromForm(form, !isOllamaGenerate);
+  if (isOllamaGenerate) {
+    writeSystem(next, form.developerMessage);
+  }
+  return next;
+};
+
+const writeSystem = (target: MutableJsonObject, value: string): void => {
+  const trimmed = value.trim();
+  if (trimmed) {
+    target["system"] = trimmed;
+  } else {
+    delete target["system"];
+  }
 };
 
 const readTemperature = (request: JsonObject): number => {
@@ -121,6 +175,9 @@ const parseMessages = (value: JsonValue | undefined): readonly MessageRow[] => {
     content: readContent(message.content),
   }));
 };
+
+const messageArray = (value: JsonValue | undefined): JsonValue[] =>
+  Array.isArray(value) ? [...value] : [];
 
 const readContent = (value: JsonValue | undefined): string => {
   if (typeof value === "string") {
