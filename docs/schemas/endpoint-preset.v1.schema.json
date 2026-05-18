@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/endpoint-preset.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/endpoint-preset.v1.schema.json",
   "title": "LocalModel Endpoint Preset",
   "type": "object",
   "required": ["schemaVersion", "id", "name", "provider", "baseUrl", "supportedShapes"],
@@ -25,7 +25,7 @@
     },
     "auth": {
       "type": "object",
-      "required": ["type", "exportable"],
+      "required": ["type"],
       "properties": {
         "type": {
           "enum": ["none", "bearer", "header"]
@@ -64,4 +64,3 @@
   },
   "additionalProperties": true
 }
-

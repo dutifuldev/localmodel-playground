@@ -224,7 +224,7 @@ Use a metadata envelope only when needed:
 
 ```json
 {
-  "$schema": "https://dutiful.dev/localmodel-playground/schemas/request-envelope.v1.json",
+  "$schema": "https://dutiful.dev/localmodel-playground/schemas/request-envelope.v1.schema.json",
   "apiShape": "openai.chat.completions.v1",
   "endpointPreset": "lmstudio-local",
   "request": {
@@ -265,7 +265,7 @@ Persisted playground state should follow this shape:
 
 ```json
 {
-  "$schema": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.json",
+  "$schema": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.schema.json",
   "schemaVersion": 1,
   "activeTabId": "tab_01",
   "tabs": [],
