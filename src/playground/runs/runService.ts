@@ -38,7 +38,7 @@ export const runRequest = async (args: RunRequestArgs): Promise<RunRecord> => {
     const latencyMs = Math.round(performance.now() - started);
 
     if (!response.ok) {
-      return await httpFailedRun(args, requestHash, startedAt, finishedAt, latencyMs, response);
+      return httpFailedRun(args, requestHash, startedAt, finishedAt, latencyMs, response);
     }
 
     return await successfulRun(
@@ -66,24 +66,31 @@ export const runRequest = async (args: RunRequestArgs): Promise<RunRecord> => {
 const requestInit = (init: RequestInit, signal: AbortSignal | undefined): RequestInit =>
   signal ? { ...init, signal } : init;
 
-const httpFailedRun = async (
+const httpFailedRun = (
   args: RunRequestArgs,
   requestHash: string,
   startedAt: string,
   finishedAt: string,
   latencyMs: number,
   response: Response,
-): Promise<RunRecord> => ({
+): RunRecord => ({
   ...baseRun(args, requestHash, startedAt),
   finishedAt,
   status: "failed",
   error: {
     kind: "http",
-    message: `HTTP ${String(response.status)}: ${await response.text()}`,
+    message: httpErrorMessage(response),
     redacted: true,
   },
   metrics: { latencyMs },
 });
+
+const httpErrorMessage = (response: Response): string => {
+  const statusText = response.statusText.trim();
+  return statusText
+    ? `HTTP ${String(response.status)} ${statusText}`
+    : `HTTP ${String(response.status)}`;
+};
 
 const successfulRun = async (
   args: RunRequestArgs,

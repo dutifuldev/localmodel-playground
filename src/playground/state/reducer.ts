@@ -53,7 +53,11 @@ const reduceBaseAction = (state: PlaygroundState, action: BaseAction): Playgroun
     case "update-tab":
       return updateTab(state, action.tabId, action.patch);
     case "open-request": {
-      const tab = createTabFromRequest({ ...action, index: state.tabs.length + 1 });
+      const tab = createTabFromRequest({
+        ...action,
+        endpointPresets: state.endpointPresets,
+        index: state.tabs.length + 1,
+      });
       return { ...state, tabs: [...state.tabs, tab], activeTabId: tab.id };
     }
     case "record-run":

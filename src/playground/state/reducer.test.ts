@@ -129,6 +129,39 @@ describe("playground reducer", () => {
     );
   });
 
+  it("preserves imported request endpoints already present in state", () => {
+    const initial = createDefaultState();
+    const state = {
+      ...initial,
+      endpointPresets: [
+        ...initial.endpointPresets,
+        {
+          schemaVersion: 1,
+          id: "custom-openai",
+          name: "Custom OpenAI",
+          provider: "custom",
+          baseUrl: "http://127.0.0.1:9000/v1",
+          auth: { type: "none" },
+          modelDiscovery: { type: "manual" },
+          supportedShapes: ["openai.responses.v1"],
+        },
+      ],
+    } as const;
+
+    const opened = playgroundReducer(state, {
+      type: "open-request",
+      title: "custom",
+      apiShape: "openai.responses.v1",
+      endpointPresetId: "custom-openai",
+      request: { model: "local", input: "hello" },
+      source: { kind: "file", fileName: "custom.json", canSaveBack: false },
+    });
+
+    expect(opened.tabs.find((tab) => tab.id === opened.activeTabId)?.endpointPresetId).toBe(
+      "custom-openai",
+    );
+  });
+
   it("normalizes imported workspace tabs with unknown endpoint presets", () => {
     const state = createDefaultState();
     const source = state.tabs[0];

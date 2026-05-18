@@ -117,7 +117,14 @@ describe("run service", () => {
 
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => Promise.resolve(new Response("bad", { status: 500 }))),
+      vi.fn(() =>
+        Promise.resolve(
+          new Response("Authorization: Bearer local-secret", {
+            status: 500,
+            statusText: "Server Error",
+          }),
+        ),
+      ),
     );
     const http = await runRequest({
       endpoint: lmStudio,
@@ -126,6 +133,7 @@ describe("run service", () => {
     });
     expect(http.status).toBe("failed");
     expect(http.error?.message).toContain("HTTP 500");
+    expect(http.error?.message).not.toContain("local-secret");
 
     vi.stubGlobal(
       "fetch",

@@ -1,5 +1,11 @@
 import type { JsonObject } from "../../shared/json";
-import type { PlaygroundState, PlaygroundTab, SourceRef, ViewState } from "../../shared/types";
+import type {
+  EndpointPreset,
+  PlaygroundState,
+  PlaygroundTab,
+  SourceRef,
+  ViewState,
+} from "../../shared/types";
 import { defaultEndpointPresets, endpointSupportsShape } from "../endpoints/providers";
 import { adapterById } from "../requests/registry";
 
@@ -44,8 +50,13 @@ export const createTabFromRequest = (args: {
   readonly apiShape: PlaygroundTab["apiShape"];
   readonly source: SourceRef;
   readonly endpointPresetId?: string;
+  readonly endpointPresets?: readonly EndpointPreset[];
 }): PlaygroundTab => {
-  const endpoint = selectEndpoint(args.apiShape, args.endpointPresetId);
+  const endpoint = selectEndpoint(
+    args.apiShape,
+    args.endpointPresetId,
+    args.endpointPresets ?? defaultEndpointPresets,
+  );
   if (!endpoint) {
     throw new Error("Missing default endpoint");
   }
@@ -69,10 +80,11 @@ export const createTabFromRequest = (args: {
 const selectEndpoint = (
   apiShape: PlaygroundTab["apiShape"],
   endpointPresetId: string | undefined,
+  endpointPresets: readonly EndpointPreset[],
 ) =>
-  defaultEndpointPresets.find((preset) => preset.id === endpointPresetId) ??
-  defaultEndpointPresets.find((preset) => endpointSupportsShape(preset, apiShape)) ??
-  defaultEndpointPresets[0];
+  endpointPresets.find((preset) => preset.id === endpointPresetId) ??
+  endpointPresets.find((preset) => endpointSupportsShape(preset, apiShape)) ??
+  endpointPresets[0];
 
 export const createDefaultState = (): PlaygroundState => {
   const firstTab = createDefaultTab(1);
