@@ -7,6 +7,7 @@ import type {
   ParsedRunResponse,
 } from "../../../shared/types";
 import { normalizeBaseUrl } from "../../endpoints/providers";
+import { openAiRequestHeaders } from "./openaiHeaders";
 
 export const openAiCompletionsAdapter: ApiShapeAdapter = {
   id: "openai.completions.v1",
@@ -57,7 +58,7 @@ const buildCompletionsRequest = (
   url: `${normalizeBaseUrl(endpoint.baseUrl)}/completions`,
   init: {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: openAiRequestHeaders(endpoint),
     body: JSON.stringify(request),
   },
   streamKind: request.stream === true ? "sse" : "none",

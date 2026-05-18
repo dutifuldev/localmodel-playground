@@ -16,6 +16,9 @@ describe("playground storage", () => {
 
     localStorage.setItem("localmodel-playground-state-v1", '{"schemaVersion":2}');
     expect(loadPlaygroundState().schemaVersion).toBe(1);
+
+    localStorage.setItem("localmodel-playground-state-v1", '{"schemaVersion":1}');
+    expect(loadPlaygroundState().tabs).toHaveLength(1);
   });
 
   it("saves and reloads playground state", () => {

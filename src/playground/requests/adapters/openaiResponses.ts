@@ -7,6 +7,7 @@ import type {
   ParsedRunResponse,
 } from "../../../shared/types";
 import { normalizeBaseUrl } from "../../endpoints/providers";
+import { openAiRequestHeaders } from "./openaiHeaders";
 
 export const openAiResponsesAdapter: ApiShapeAdapter = {
   id: "openai.responses.v1",
@@ -57,7 +58,7 @@ const buildResponsesRequest = (endpoint: EndpointPreset, request: JsonObject): H
   url: `${normalizeBaseUrl(endpoint.baseUrl)}/responses`,
   init: {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: openAiRequestHeaders(endpoint),
     body: JSON.stringify(request),
   },
   streamKind: request.stream === true ? "sse" : "none",

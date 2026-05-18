@@ -3,6 +3,7 @@
   "testRunner": "vitest",
   "packageManager": "npm",
   "checkers": ["typescript"],
+  "ignorePatterns": ["/coverage", "/dist", "/test-results", "/playwright-report"],
   "mutate": ["src/shared/redaction.ts"],
   "thresholds": {
     "high": 85,

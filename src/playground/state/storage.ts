@@ -11,13 +11,26 @@ export const loadPlaygroundState = (): PlaygroundState => {
   }
 
   const parsed = parseJson(source);
-  if (!parsed.ok || !isJsonObject(parsed.value) || parsed.value.schemaVersion !== 1) {
+  if (!parsed.ok || !isStoredPlaygroundState(parsed.value)) {
     return createDefaultState();
   }
 
-  return parsed.value as unknown as PlaygroundState;
+  return parsed.value;
 };
 
 export const savePlaygroundState = (state: PlaygroundState): void => {
   localStorage.setItem(stateKey, JSON.stringify(state));
+};
+
+const isStoredPlaygroundState = (value: unknown): value is PlaygroundState => {
+  if (!isJsonObject(value) || value.schemaVersion !== 1) {
+    return false;
+  }
+  return (
+    typeof value["activeTabId"] === "string" &&
+    Array.isArray(value.tabs) &&
+    value.tabs.every(isJsonObject) &&
+    Array.isArray(value["endpointPresets"]) &&
+    value["endpointPresets"].every(isJsonObject)
+  );
 };

@@ -7,6 +7,7 @@ import type {
   ParsedRunResponse,
 } from "../../../shared/types";
 import { normalizeBaseUrl } from "../../endpoints/providers";
+import { openAiRequestHeaders } from "./openaiHeaders";
 
 export const openAiChatCompletionsAdapter: ApiShapeAdapter = {
   id: "openai.chat.completions.v1",
@@ -63,22 +64,11 @@ const buildChatCompletionsRequest = (
   url: `${normalizeBaseUrl(endpoint.baseUrl)}/chat/completions`,
   init: {
     method: "POST",
-    headers: requestHeaders(endpoint),
+    headers: openAiRequestHeaders(endpoint),
     body: JSON.stringify(request),
   },
   streamKind: request.stream === true ? "sse" : "none",
 });
-
-const requestHeaders = (endpoint: EndpointPreset): HeadersInit => {
-  const headers: Record<string, string> = { "content-type": "application/json" };
-  if (endpoint.auth.type === "bearer" && endpoint.auth.token) {
-    headers["authorization"] = `Bearer ${endpoint.auth.token}`;
-  }
-  if (endpoint.auth.type === "header" && endpoint.auth.headerValue) {
-    headers[endpoint.auth.headerName] = endpoint.auth.headerValue;
-  }
-  return headers;
-};
 
 export const parseChatCompletionsResponse = (response: JsonValue): ParsedRunResponse => {
   if (!isJsonObject(response)) {

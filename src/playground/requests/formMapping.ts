@@ -27,7 +27,7 @@ export const requestToFormState = (
   const model = typeof request.model === "string" ? request.model : "local-model";
   const temperature = readTemperature(request);
   const stream = request.stream === true;
-  const source = apiShape === "openai.responses.v1" ? request.input : request.messages;
+  const source = messageSource(apiShape, request);
   const messages = parseMessages(source);
   const developerMessage =
     messages.find((message) => isDeveloperRole(message.role))?.content ?? "";
@@ -39,6 +39,20 @@ export const requestToFormState = (
     developerMessage,
     messages: messages.filter((message) => !isDeveloperRole(message.role)),
   };
+};
+
+const messageSource = (apiShape: ApiShapeId, request: JsonObject): JsonValue | undefined => {
+  if (apiShape === "openai.responses.v1") {
+    return request.input;
+  }
+
+  if (apiShape === "openai.completions.v1" || apiShape === "ollama.generate.v1") {
+    return typeof request.prompt === "string"
+      ? [{ role: "user", content: request.prompt }]
+      : request.messages;
+  }
+
+  return request.messages;
 };
 
 export const formStateToRequest = (

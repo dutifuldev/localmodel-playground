@@ -67,6 +67,32 @@ describe("request form mapping", () => {
     expect(ollama.options).toEqual({ top_p: 0.9, temperature: 0.1 });
   });
 
+  it("preserves prompt text for prompt-based APIs when form fields change", () => {
+    const completionsForm = requestToFormState("openai.completions.v1", {
+      model: "local",
+      prompt: "Keep this prompt",
+    });
+    expect(completionsForm.messages).toEqual([
+      { id: "message_0", role: "user", content: "Keep this prompt" },
+    ]);
+    expect(
+      formStateToRequest(
+        "openai.completions.v1",
+        { model: "local", prompt: "Keep this prompt" },
+        {
+          ...completionsForm,
+          model: "changed",
+        },
+      ).prompt,
+    ).toBe("Keep this prompt");
+
+    const ollamaForm = requestToFormState("ollama.generate.v1", {
+      model: "llama",
+      prompt: "Generate this",
+    });
+    expect(ollamaForm.messages[0]?.content).toBe("Generate this");
+  });
+
   it("handles malformed or sparse requests with MVP defaults", () => {
     expect(requestToFormState("openai.chat.completions.v1", {})).toEqual({
       model: "local-model",

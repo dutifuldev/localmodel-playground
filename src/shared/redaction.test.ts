@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import { containsSecretLikeKey, redactEndpointPreset, redactJson, REDACTED } from "./redaction";
 
 describe("redaction helpers", () => {
+  it("uses a stable exported redaction marker", () => {
+    expect(REDACTED).toBe("[redacted]");
+  });
+
   it("redacts nested secret-like keys", () => {
     const value = {
       headers: {
@@ -26,6 +30,7 @@ describe("redaction helpers", () => {
     expect(containsSecretLikeKey({ api_key: "sk-local" })).toBe(true);
     expect(containsSecretLikeKey({ accessToken: "token" })).toBe(true);
     expect(containsSecretLikeKey({ refresh_token: "token" })).toBe(true);
+    expect(containsSecretLikeKey({ token: "token" })).toBe(true);
     expect(containsSecretLikeKey({ regular: "value" })).toBe(false);
     expect(containsSecretLikeKey({ password: null })).toBe(false);
     expect(containsSecretLikeKey({ api_key: REDACTED })).toBe(false);

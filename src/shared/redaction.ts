@@ -1,7 +1,7 @@
 import { isJsonObject, type JsonObject, type JsonValue, type MutableJsonObject } from "./json";
 
 const sensitiveKeyPattern =
-  /(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|password|secret|cookie|bearer|header[_-]?value)/i;
+  /(?:authorization|api[_-]?key|access[_-]?token|refresh[_-]?token|(?:^|[_-])token$|password|secret|cookie|bearer|header[_-]?value)/i;
 
 export const REDACTED = "[redacted]";
 

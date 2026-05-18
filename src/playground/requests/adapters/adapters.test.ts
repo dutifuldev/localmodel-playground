@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { JsonObject } from "../../../shared/json";
+import type { ApiShapeId } from "../../../shared/types";
 import { defaultEndpointPresets } from "../../endpoints/providers";
 import { adapterById } from "../registry";
 import { detectOllamaChat } from "./ollamaChat";
@@ -68,6 +70,38 @@ describe("API shape adapters", () => {
       url: "http://127.0.0.1:11434/api/generate",
       streamKind: "none",
     });
+  });
+
+  it("forwards OpenAI-compatible auth headers for every OpenAI-style shape", () => {
+    const endpoint = {
+      schemaVersion: 1,
+      id: "auth",
+      name: "Auth",
+      provider: "openai-compatible",
+      baseUrl: "http://localhost:9000/v1",
+      auth: { type: "bearer", token: "secret", exportable: false },
+      modelDiscovery: { type: "manual" },
+      supportedShapes: [
+        "openai.chat.completions.v1",
+        "openai.completions.v1",
+        "openai.responses.v1",
+      ],
+    } as const;
+
+    const shapes: readonly { readonly shape: ApiShapeId; readonly request: JsonObject }[] = [
+      { shape: "openai.chat.completions.v1", request: { model: "local", messages: [] } },
+      { shape: "openai.completions.v1", request: { model: "local", prompt: "hello" } },
+      { shape: "openai.responses.v1", request: { model: "local", input: "hello" } },
+    ];
+
+    for (const { shape, request } of shapes) {
+      expect(
+        adapterById(shape).buildHttpRequest({ endpoint, request }).init.headers,
+      ).toMatchObject({
+        authorization: "Bearer secret",
+        "content-type": "application/json",
+      });
+    }
   });
 
   it("parses native provider responses", () => {
