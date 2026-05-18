@@ -22,6 +22,7 @@ export type ImportedRequest = {
   readonly source: SourceRef;
   readonly diagnostics: readonly string[];
   readonly tab?: PlaygroundTab;
+  readonly tabs?: readonly PlaygroundTab[];
 };
 
 export const importRequestFile = async (
@@ -35,15 +36,17 @@ export const importRequestFile = async (
   }
 
   const source = sourceForFile(file, relativePath);
-  const workspaceTab = tabFromPromptWorkspace(parsed.value, source);
+  const workspaceTabs = tabsFromPromptWorkspace(parsed.value, source);
+  const workspaceTab = workspaceTabs[0];
   if (workspaceTab) {
     return {
       title: workspaceTab.title,
       request: workspaceTab.request,
       apiShape: workspaceTab.apiShape,
       source,
-      diagnostics: ["loaded prompt workspace tab"],
+      diagnostics: [`loaded ${String(workspaceTabs.length)} prompt workspace tab(s)`],
       tab: workspaceTab,
+      tabs: workspaceTabs,
     };
   }
 
@@ -103,26 +106,23 @@ const sourceForFile = (file: File, relativePath: string | undefined): SourceRef 
         canSaveBack: false,
       };
 
-const tabFromPromptWorkspace = (
+const tabsFromPromptWorkspace = (
   value: JsonValue,
   source: SourceRef,
-): PlaygroundTab | undefined => {
+): readonly PlaygroundTab[] => {
   if (!isJsonObject(value) || value.schemaVersion !== 1) {
-    return undefined;
+    return [];
   }
 
   const tabs = jsonArray(value.tabs);
   if (!tabs) {
-    return undefined;
+    return [];
   }
 
-  for (const tabValue of tabs) {
-    const tab = readPromptWorkspaceTab(tabValue, source);
-    if (tab) {
-      return tab;
-    }
-  }
-  return undefined;
+  return tabs.flatMap((tabValue, index) => {
+    const tab = readPromptWorkspaceTab(tabValue, source, index);
+    return tab ? [tab] : [];
+  });
 };
 
 const jsonArray = (value: JsonValue | undefined): readonly JsonValue[] | undefined =>
@@ -131,6 +131,7 @@ const jsonArray = (value: JsonValue | undefined): readonly JsonValue[] | undefin
 const readPromptWorkspaceTab = (
   value: JsonValue,
   source: SourceRef,
+  index: number,
 ): PlaygroundTab | undefined => {
   if (!isJsonObject(value)) {
     return undefined;
@@ -145,7 +146,7 @@ const readPromptWorkspaceTab = (
 
   return {
     schemaVersion: 1,
-    id: `tab_${String(Date.now())}`,
+    id: `tab_${String(Date.now())}_${String(index + 1)}`,
     title: identity.title,
     dirty: false,
     source,

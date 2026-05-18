@@ -117,6 +117,38 @@ describe("file import", () => {
     });
     expect(imported.tab?.currentRun).toBeUndefined();
     expect(imported.tab?.id).not.toBe("tab_saved");
+    expect(imported.tabs).toHaveLength(1);
+  });
+
+  it("loads every valid tab from multi-tab prompt workspaces", async () => {
+    const file = textFile(
+      JSON.stringify({
+        schemaVersion: 1,
+        name: "Multi workspace",
+        tabs: [
+          workspaceTab(),
+          {
+            ...workspaceTab(),
+            id: "tab_second",
+            title: "Second prompt",
+            endpointPresetId: "ollama-local",
+            model: "llama3",
+            apiShape: "ollama.chat.v1",
+            request: {
+              model: "llama3",
+              messages: [{ role: "user", content: "second" }],
+            },
+          },
+        ],
+      }),
+      "multi.prompt.json",
+    );
+
+    const imported = await importRequestFile(file);
+
+    expect(imported.tabs).toHaveLength(2);
+    expect(imported.tabs?.map((tab) => tab.title)).toEqual(["Saved prompt", "Second prompt"]);
+    expect(new Set(imported.tabs?.map((tab) => tab.id))).toHaveProperty("size", 2);
   });
 
   it("loads workspace tabs without a last run and filters invalid run history items", async () => {

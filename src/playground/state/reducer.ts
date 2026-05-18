@@ -10,7 +10,7 @@ import { createDefaultTab, createTabFromRequest } from "./defaults";
 
 export type PlaygroundAction =
   | { readonly type: "add-tab" }
-  | { readonly type: "close-tab"; readonly tabId: string }
+  | { readonly type: "close-tab"; readonly tabId: string; readonly force?: boolean }
   | { readonly type: "duplicate-tab"; readonly tabId: string }
   | { readonly type: "activate-tab"; readonly tabId: string }
   | {
@@ -44,7 +44,7 @@ const reduceBaseAction = (state: PlaygroundState, action: BaseAction): Playgroun
       return { ...state, tabs: [...state.tabs, tab], activeTabId: tab.id };
     }
     case "close-tab":
-      return closeTab(state, action.tabId);
+      return closeTab(state, action.tabId, action.force === true);
     case "duplicate-tab":
       return duplicateTab(state, action.tabId);
     case "activate-tab":
@@ -66,8 +66,13 @@ const openTab = (state: PlaygroundState, tab: PlaygroundTab): PlaygroundState =>
   activeTabId: tab.id,
 });
 
-const closeTab = (state: PlaygroundState, tabId: string): PlaygroundState => {
+const closeTab = (state: PlaygroundState, tabId: string, force: boolean): PlaygroundState => {
   if (state.tabs.length === 1) {
+    return state;
+  }
+
+  const closing = state.tabs.find((tab) => tab.id === tabId);
+  if (closing?.dirty && !force) {
     return state;
   }
 

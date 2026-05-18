@@ -47,9 +47,38 @@ describe("playground reducer", () => {
     const closed = playgroundReducer(duplicated, {
       type: "close-tab",
       tabId: duplicated.activeTabId,
+      force: true,
     });
     expect(closed.tabs).toHaveLength(2);
     expect(closed.activeTabId).toBe(closed.tabs[0]?.id);
+  });
+
+  it("keeps dirty tabs unless close is explicitly confirmed", () => {
+    const state = playgroundReducer(createDefaultState(), { type: "add-tab" });
+    const dirtyTab = state.tabs[1];
+    expect(dirtyTab).toBeDefined();
+    if (!dirtyTab) {
+      return;
+    }
+
+    const dirtyState = playgroundReducer(state, {
+      type: "update-tab",
+      tabId: dirtyTab.id,
+      patch: { dirty: true },
+    });
+
+    const blocked = playgroundReducer(dirtyState, {
+      type: "close-tab",
+      tabId: dirtyTab.id,
+    });
+    expect(blocked.tabs).toHaveLength(2);
+
+    const confirmed = playgroundReducer(dirtyState, {
+      type: "close-tab",
+      tabId: dirtyTab.id,
+      force: true,
+    });
+    expect(confirmed.tabs).toHaveLength(1);
   });
 
   it("opens imported requests and stores completed run details on the owning tab", () => {

@@ -204,11 +204,23 @@ export const App = (): React.JSX.Element => {
   };
 
   const openImportedRequest = (item: ImportedRequest): void => {
-    if (item.tab) {
-      dispatch({ type: "open-tab", tab: item.tab });
+    if (item.tabs?.length) {
+      for (const tab of item.tabs) {
+        dispatch({ type: "open-tab", tab });
+      }
       return;
     }
     dispatch({ type: "open-request", ...item });
+  };
+
+  const closeTab = (tabId: string): void => {
+    const tab = state.tabs.find((item) => item.id === tabId);
+    const force =
+      !tab?.dirty ||
+      window.confirm(`Discard unsaved changes in "${tab.title}" and close this tab?`);
+    if (force) {
+      dispatch({ type: "close-tab", tabId, force });
+    }
   };
 
   return (
@@ -255,7 +267,7 @@ export const App = (): React.JSX.Element => {
             activeTabId={state.activeTabId}
             onActivate={(tabId) => dispatch({ type: "activate-tab", tabId })}
             onAdd={() => dispatch({ type: "add-tab" })}
-            onClose={(tabId) => dispatch({ type: "close-tab", tabId })}
+            onClose={closeTab}
             onDuplicate={(tabId) => dispatch({ type: "duplicate-tab", tabId })}
           />
           <div className="prompt-toolbar">
