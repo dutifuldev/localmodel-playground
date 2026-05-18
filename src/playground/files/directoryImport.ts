@@ -1,4 +1,4 @@
-import { importRequestFile, type ImportedRequest } from "./fileImport";
+import { tryImportRequestFile, type ImportedRequest } from "./fileImport";
 
 type BrowserFileHandle = {
   readonly kind: "file";
@@ -39,7 +39,10 @@ const readDirectory = async (
     if (isDirectoryHandle(handle)) {
       imported.push(...(await readDirectory(handle, relativePath)));
     } else if (handle.name.endsWith(".json")) {
-      imported.push(await importRequestFile(await handle.getFile(), relativePath));
+      const request = await tryImportRequestFile(await handle.getFile(), relativePath);
+      if (request) {
+        imported.push(request);
+      }
     }
   }
   return imported;

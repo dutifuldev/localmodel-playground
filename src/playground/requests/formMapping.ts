@@ -26,7 +26,7 @@ export const requestToFormState = (
 ): RequestFormState => {
   const model = typeof request.model === "string" ? request.model : "local-model";
   const temperature = readTemperature(request);
-  const stream = request.stream === true;
+  const stream = readStream(apiShape, request);
   const source = messageSource(apiShape, request);
   const messages = parseMessages(source);
   const developerMessage =
@@ -39,6 +39,13 @@ export const requestToFormState = (
     developerMessage,
     messages: messages.filter((message) => !isDeveloperRole(message.role)),
   };
+};
+
+const readStream = (apiShape: ApiShapeId, request: JsonObject): boolean => {
+  if (apiShape.startsWith("ollama")) {
+    return request.stream !== false;
+  }
+  return request.stream === true;
 };
 
 const messageSource = (apiShape: ApiShapeId, request: JsonObject): JsonValue | undefined => {

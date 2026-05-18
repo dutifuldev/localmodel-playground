@@ -30,9 +30,10 @@ describe("file import", () => {
 
   it("filters non-json files during multi-file imports", async () => {
     const json = textFile('{"model":"local","prompt":"hello"}', "prompt.json");
+    const badJson = textFile("{", "bad.json");
     const text = textFile("not json", "notes.txt", "text/plain");
 
-    const imported = await importManyFiles([json, text]);
+    const imported = await importManyFiles([json, badJson, text]);
 
     expect(imported).toHaveLength(1);
     expect(imported[0]?.title).toBe("prompt");

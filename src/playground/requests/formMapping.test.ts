@@ -91,6 +91,17 @@ describe("request form mapping", () => {
       prompt: "Generate this",
     });
     expect(ollamaForm.messages[0]?.content).toBe("Generate this");
+    expect(ollamaForm.stream).toBe(true);
+    expect(
+      formStateToRequest(
+        "ollama.generate.v1",
+        { model: "llama", prompt: "Generate this" },
+        {
+          ...ollamaForm,
+          model: "changed",
+        },
+      ).stream,
+    ).toBe(true);
   });
 
   it("handles malformed or sparse requests with MVP defaults", () => {

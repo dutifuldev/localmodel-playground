@@ -69,12 +69,24 @@ export const importManyFiles = async (
   files: readonly File[],
 ): Promise<readonly ImportedRequest[]> => {
   const supported = files.filter((file) => file.name.endsWith(".json"));
-  return Promise.all(
-    supported.map((file) => {
+  const imported = await Promise.all(
+    supported.map(async (file) => {
       const fileWithPath = file as File & { readonly webkitRelativePath?: string };
-      return importRequestFile(file, fileWithPath.webkitRelativePath);
+      return tryImportRequestFile(file, fileWithPath.webkitRelativePath);
     }),
   );
+  return imported.filter((item): item is ImportedRequest => item !== undefined);
+};
+
+export const tryImportRequestFile = async (
+  file: File,
+  relativePath?: string,
+): Promise<ImportedRequest | undefined> => {
+  try {
+    return await importRequestFile(file, relativePath);
+  } catch {
+    return undefined;
+  }
 };
 
 const sourceForFile = (file: File, relativePath: string | undefined): SourceRef =>

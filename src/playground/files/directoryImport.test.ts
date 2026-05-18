@@ -31,6 +31,7 @@ describe("directory import", () => {
         Promise.resolve(
           directory("root", [
             file("first.json", '{"model":"local","prompt":"one"}'),
+            file("bad.json", "{"),
             file("notes.txt", "ignore"),
             directory("nested", [file("second.json", '{"model":"local","input":"two"}')]),
           ]),
