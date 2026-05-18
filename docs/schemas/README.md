@@ -20,4 +20,3 @@ Rules:
 - Preserve unknown fields where practical during load/save.
 - Never export bearer tokens, cookies, passwords, or local auth headers by default.
 - Surface validation errors with JSON pointer paths in the playground schema diagnostics panel.
-

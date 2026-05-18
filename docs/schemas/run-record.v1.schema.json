@@ -1,9 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/run-record.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/run-record.v1.schema.json",
   "title": "LocalModel Run Record",
   "type": "object",
-  "required": ["schemaVersion", "id", "startedAt", "endpointPresetId", "apiShape", "requestHash", "status"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "startedAt",
+    "endpointPresetId",
+    "apiShape",
+    "requestHash",
+    "status"
+  ],
   "properties": {
     "$schema": {
       "type": "string"
@@ -79,4 +87,3 @@
   },
   "additionalProperties": true
 }
-

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/request-envelope.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/request-envelope.v1.schema.json",
   "title": "LocalModel Request Envelope",
   "type": "object",
   "required": ["schemaVersion", "apiShape", "request"],
@@ -36,4 +36,3 @@
   },
   "additionalProperties": true
 }
-

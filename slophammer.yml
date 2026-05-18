@@ -1,0 +1,30 @@
+typescript:
+  coverage_threshold: 85
+  complexity_max: 8
+  dry:
+    max_findings: 0
+    paths:
+      - src
+    exclude:
+      - "**/*.test.ts"
+      - "**/*.test.tsx"
+      - "src/examples/**"
+      - "dist/**"
+      - "coverage/**"
+    copied_blocks:
+      enabled: true
+      min_tokens: 100
+  mutation_targets:
+    - src/shared/redaction.ts
+  dependency_boundaries:
+    - from: src/playground/requests
+      allow:
+        - src/playground/endpoints
+        - src/shared
+    - from: src/playground/runs
+      allow:
+        - src/playground/endpoints
+        - src/playground/requests
+        - src/shared
+    - from: src/shared
+      allow: []

@@ -1,9 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-tab.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-tab.v1.schema.json",
   "title": "LocalModel Playground Tab",
   "type": "object",
-  "required": ["schemaVersion", "id", "title", "dirty", "apiShape", "request", "editorMode", "viewState", "runHistory"],
+  "required": [
+    "schemaVersion",
+    "id",
+    "title",
+    "dirty",
+    "apiShape",
+    "request",
+    "editorMode",
+    "viewState",
+    "runHistory"
+  ],
   "properties": {
     "$schema": {
       "type": "string"
@@ -89,4 +99,3 @@
   },
   "additionalProperties": true
 }
-

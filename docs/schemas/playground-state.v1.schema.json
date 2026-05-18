@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.schema.json",
   "title": "LocalModel Playground State",
   "type": "object",
   "required": ["schemaVersion", "activeTabId", "tabs", "endpointPresets"],
@@ -68,4 +68,3 @@
   },
   "additionalProperties": true
 }
-

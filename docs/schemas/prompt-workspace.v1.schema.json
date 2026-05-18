@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dutiful.dev/localmodel-playground/schemas/prompt-workspace.v1.json",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/prompt-workspace.v1.schema.json",
   "title": "LocalModel Prompt Workspace",
   "type": "object",
   "required": ["schemaVersion", "name", "tabs"],
@@ -29,4 +29,3 @@
   },
   "additionalProperties": true
 }
-
