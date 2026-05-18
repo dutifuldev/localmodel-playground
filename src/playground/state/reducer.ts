@@ -23,6 +23,7 @@ export type PlaygroundAction =
       readonly title: string;
       readonly request: JsonObject;
       readonly apiShape: ApiShapeId;
+      readonly endpointPresetId?: string;
       readonly source: SourceRef;
     }
   | { readonly type: "open-tab"; readonly tab: PlaygroundTab }
@@ -82,8 +83,10 @@ const duplicateTab = (state: PlaygroundState, tabId: string): PlaygroundState =>
     return state;
   }
 
+  const { currentRun: _currentRun, ...copySource } = source;
+  void _currentRun;
   const copy: PlaygroundTab = {
-    ...source,
+    ...copySource,
     id: `tab_${String(Date.now())}`,
     title: `${source.title} copy`,
     dirty: true,

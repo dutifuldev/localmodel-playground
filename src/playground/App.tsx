@@ -43,7 +43,7 @@ export const App = (): React.JSX.Element => {
   const [jsonError, setJsonError] = useState<string | undefined>();
   const [models, setModels] = useState<readonly string[]>([]);
   const [modelStatus, setModelStatus] = useState("Manual model entry available");
-  const abortRef = useRef<AbortController | undefined>();
+  const abortControllersRef = useRef(new Map<string, AbortController>());
 
   const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId) ?? state.tabs[0];
   const activeEndpoint = state.endpointPresets.find(
@@ -127,8 +127,9 @@ export const App = (): React.JSX.Element => {
       return;
     }
 
+    const tabId = activeTab.id;
     const controller = new AbortController();
-    abortRef.current = controller;
+    abortControllersRef.current.set(tabId, controller);
     const pending: RunRecord = {
       schemaVersion: 1,
       id: `run_${String(Date.now())}`,
@@ -139,18 +140,24 @@ export const App = (): React.JSX.Element => {
       requestHash: "pending",
       status: "running",
     };
-    dispatch({ type: "update-tab", tabId: activeTab.id, patch: { currentRun: pending } });
-    const run = await runRequest({
-      endpoint: activeEndpoint,
-      apiShape: activeTab.apiShape,
-      request: activeTab.request,
-      signal: controller.signal,
-    });
-    dispatch({ type: "record-run", tabId: activeTab.id, run });
+    dispatch({ type: "update-tab", tabId, patch: { currentRun: pending } });
+    try {
+      const run = await runRequest({
+        endpoint: activeEndpoint,
+        apiShape: activeTab.apiShape,
+        request: activeTab.request,
+        signal: controller.signal,
+      });
+      dispatch({ type: "record-run", tabId, run });
+    } finally {
+      if (abortControllersRef.current.get(tabId) === controller) {
+        abortControllersRef.current.delete(tabId);
+      }
+    }
   };
 
   const stopRun = (): void => {
-    abortRef.current?.abort();
+    abortControllersRef.current.get(activeTab.id)?.abort();
   };
 
   const applyRawJson = (value: string | undefined): void => {
@@ -229,6 +236,9 @@ export const App = (): React.JSX.Element => {
               title: example.title,
               request: example.request,
               apiShape: example.apiShape,
+              ...(endpointSupportsShape(activeEndpoint, example.apiShape)
+                ? { endpointPresetId: activeEndpoint.id }
+                : {}),
               source: {
                 kind: "example",
                 fileName: `${example.title}.json`,

@@ -7,6 +7,7 @@ describe("file import", () => {
     const file = textFile(
       JSON.stringify({
         apiShape: "openai.responses.v1",
+        endpointPresetId: "openai-compatible",
         request: {
           model: "local",
           input: [{ role: "user", content: "ping" }],
@@ -18,6 +19,7 @@ describe("file import", () => {
     await expect(importRequestFile(file)).resolves.toMatchObject({
       title: "responses",
       apiShape: "openai.responses.v1",
+      endpointPresetId: "openai-compatible",
       request: {
         model: "local",
         input: [{ role: "user", content: "ping" }],
@@ -78,8 +80,9 @@ describe("file import", () => {
               endpointPresetId: "ollama-local",
               apiShape: "ollama.chat.v1",
               requestHash: "abc",
-              status: "succeeded",
-              parsed: { text: "done" },
+              status: "failed",
+              error: { kind: "http", message: "HTTP 500", redacted: true },
+              metrics: { latencyMs: 120, promptTokens: 3, completionTokens: 4, totalTokens: 7 },
             },
             runHistory: [],
           },
@@ -105,8 +108,9 @@ describe("file import", () => {
         model: "llama3",
         apiShape: "ollama.chat.v1",
         lastRun: {
-          status: "succeeded",
-          parsed: { text: "done" },
+          status: "failed",
+          error: { kind: "http", message: "HTTP 500", redacted: true },
+          metrics: { latencyMs: 120, promptTokens: 3, completionTokens: 4, totalTokens: 7 },
         },
       },
     });

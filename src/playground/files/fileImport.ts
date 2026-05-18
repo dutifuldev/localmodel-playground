@@ -3,6 +3,9 @@ import type {
   ApiShapeId,
   ParsedRunResponse,
   PlaygroundTab,
+  RunError,
+  RunErrorKind,
+  RunMetrics,
   RunRecord,
   RunStatus,
   SourceRef,
@@ -15,6 +18,7 @@ export type ImportedRequest = {
   readonly title: string;
   readonly request: JsonObject;
   readonly apiShape: ApiShapeId;
+  readonly endpointPresetId?: string;
   readonly source: SourceRef;
   readonly diagnostics: readonly string[];
   readonly tab?: PlaygroundTab;
@@ -49,11 +53,13 @@ export const importRequestFile = async (
   }
 
   const detection = detectRequestShape(parsed.value);
+  const endpointPresetId = readEnvelopeEndpointPresetId(parsed.value);
 
   return {
     title: file.name.replace(/\.(request|prompt)?\.?json$/u, "") || "Imported request",
     request: unwrapped,
     apiShape: detection.selected.apiShape,
+    ...(endpointPresetId ? { endpointPresetId } : {}),
     source,
     diagnostics: detection.selected.reasons,
   };
@@ -220,8 +226,14 @@ const readRunRecord = (value: JsonValue | undefined): RunRecord | undefined => {
   if (!base || !isJsonObject(value)) {
     return undefined;
   }
+  return appendOptionalRunFields(base, value);
+};
+
+const appendOptionalRunFields = (base: RunRecord, value: JsonObject): RunRecord => {
   const response = value.response;
   const parsed = readParsedResponse(value["parsed"]);
+  const error = readRunError(value["error"]);
+  const metrics = readRunMetrics(value["metrics"]);
   const finishedAt = stringValue(value["finishedAt"]);
   const model = stringValue(value.model);
   return {
@@ -230,6 +242,8 @@ const readRunRecord = (value: JsonValue | undefined): RunRecord | undefined => {
     ...(model ? { model } : {}),
     ...(response !== undefined ? { response } : {}),
     ...(parsed ? { parsed } : {}),
+    ...(error ? { error } : {}),
+    ...(metrics ? { metrics } : {}),
   };
 };
 
@@ -286,6 +300,43 @@ const readParsedResponse = (value: JsonValue | undefined): ParsedRunResponse | u
   return text ? { text, ...(finishReason ? { finishReason } : {}) } : undefined;
 };
 
+const readRunError = (value: JsonValue | undefined): RunError | undefined => {
+  if (!isJsonObject(value)) {
+    return undefined;
+  }
+  const kind = runErrorKindValue(value["kind"]);
+  const message = stringValue(value.message);
+  const redacted = value["redacted"];
+  if (!kind || !message || typeof redacted !== "boolean") {
+    return undefined;
+  }
+  return { kind, message, redacted };
+};
+
+const readRunMetrics = (value: JsonValue | undefined): RunMetrics | undefined => {
+  if (!isJsonObject(value)) {
+    return undefined;
+  }
+  const metrics: Partial<Record<keyof RunMetrics, number>> = {};
+  let hasMetrics = false;
+  for (const [key, metric] of metricValues(value)) {
+    if (metric !== undefined) {
+      metrics[key] = metric;
+      hasMetrics = true;
+    }
+  }
+  return hasMetrics ? metrics : undefined;
+};
+
+const metricValues = (
+  value: JsonObject,
+): readonly (readonly [keyof RunMetrics, number | undefined])[] => [
+  ["latencyMs", numberValue(value["latencyMs"])],
+  ["promptTokens", numberValue(value["promptTokens"])],
+  ["completionTokens", numberValue(value["completionTokens"])],
+  ["totalTokens", numberValue(value["totalTokens"])],
+];
+
 const stringValue = (value: JsonValue | undefined): string | undefined =>
   typeof value === "string" ? value : undefined;
 
@@ -309,8 +360,30 @@ const runStatusValue = (value: JsonValue | undefined): RunStatus | undefined =>
     ? value
     : undefined;
 
+const runErrorKindValue = (value: JsonValue | undefined): RunErrorKind | undefined =>
+  value === "cors" ||
+  value === "network" ||
+  value === "http" ||
+  value === "validation" ||
+  value === "unsupported" ||
+  value === "unknown"
+    ? value
+    : undefined;
+
+const numberValue = (value: JsonValue | undefined): number | undefined =>
+  typeof value === "number" ? value : undefined;
+
 const apiShapeValue = (value: JsonValue | undefined): ApiShapeId | undefined =>
   typeof value === "string" && isKnownShape(value) ? value : undefined;
 
 const isKnownShape = (value: string): value is ApiShapeId =>
   adapters.some((adapter) => adapter.id === value);
+
+const readEnvelopeEndpointPresetId = (value: JsonValue): string | undefined => {
+  if (!isJsonObject(value)) {
+    return undefined;
+  }
+  const endpointPresetId = stringValue(value["endpointPresetId"]);
+  const legacyEndpointPresetId = stringValue(value["endpointPreset"]);
+  return endpointPresetId ?? legacyEndpointPresetId;
+};

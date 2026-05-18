@@ -53,10 +53,18 @@ export type SourceRef = {
   readonly canSaveBack: boolean;
 };
 
+export type RunErrorKind =
+  | "cors"
+  | "network"
+  | "http"
+  | "validation"
+  | "unsupported"
+  | "unknown";
+
 export type RunStatus = "running" | "succeeded" | "failed" | "cancelled";
 
 export type RunError = {
-  readonly kind: "cors" | "network" | "http" | "validation" | "unsupported" | "unknown";
+  readonly kind: RunErrorKind;
   readonly message: string;
   readonly redacted: boolean;
 };

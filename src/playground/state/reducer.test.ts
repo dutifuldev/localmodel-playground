@@ -31,9 +31,18 @@ describe("playground reducer", () => {
       return;
     }
 
-    const duplicated = playgroundReducer(added, { type: "duplicate-tab", tabId: firstTab.id });
+    const running = playgroundReducer(added, {
+      type: "update-tab",
+      tabId: firstTab.id,
+      patch: { currentRun: { ...makeRun("run_pending"), status: "running" } },
+    });
+    const duplicated = playgroundReducer(running, {
+      type: "duplicate-tab",
+      tabId: firstTab.id,
+    });
     expect(duplicated.tabs).toHaveLength(3);
     expect(duplicated.tabs[2]?.title).toContain("copy");
+    expect(duplicated.tabs[2]?.currentRun).toBeUndefined();
 
     const closed = playgroundReducer(duplicated, {
       type: "close-tab",
@@ -75,5 +84,19 @@ describe("playground reducer", () => {
     expect(recordedTab?.currentRun).toBeUndefined();
     expect(recordedTab?.lastRun?.id).toBe("run_done");
     expect(recordedTab?.runHistory).toHaveLength(1);
+  });
+
+  it("chooses a compatible endpoint for imported requests", () => {
+    const opened = playgroundReducer(createDefaultState(), {
+      type: "open-request",
+      title: "ollama",
+      apiShape: "ollama.chat.v1",
+      request: { model: "llama3", messages: [{ role: "user", content: "ping" }] },
+      source: { kind: "file", fileName: "ollama.json", canSaveBack: false },
+    });
+
+    expect(opened.tabs.find((tab) => tab.id === opened.activeTabId)?.endpointPresetId).toBe(
+      "ollama-local",
+    );
   });
 });
