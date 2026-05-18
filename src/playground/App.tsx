@@ -49,17 +49,19 @@ export const App = (): React.JSX.Element => {
   const activeEndpoint = state.endpointPresets.find(
     (endpoint) => endpoint.id === activeTab?.endpointPresetId,
   );
+  const activeTabId = activeTab?.id;
+  const activeRequest = activeTab?.request;
 
   useEffect(() => {
     savePlaygroundState(state);
   }, [state]);
 
   useEffect(() => {
-    if (activeTab) {
-      setRawJson(stableStringify(activeTab.request));
+    if (activeRequest) {
+      setRawJson(stableStringify(activeRequest));
       setJsonError(undefined);
     }
-  }, [activeTab]);
+  }, [activeTabId, activeRequest]);
 
   const formState = useMemo(
     () => (activeTab ? requestToFormState(activeTab.apiShape, activeTab.request) : undefined),

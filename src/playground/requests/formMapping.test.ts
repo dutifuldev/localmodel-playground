@@ -67,6 +67,24 @@ describe("request form mapping", () => {
     expect(ollama.options).toEqual({ top_p: 0.9, temperature: 0.1 });
   });
 
+  it("preserves scalar Responses input through structured edits", () => {
+    const form = requestToFormState("openai.responses.v1", {
+      model: "local",
+      input: "Keep this response prompt",
+    });
+
+    expect(form.messages).toEqual([
+      { id: "message_0", role: "user", content: "Keep this response prompt" },
+    ]);
+    expect(
+      formStateToRequest(
+        "openai.responses.v1",
+        { model: "local", input: "Keep this response prompt" },
+        { ...form, model: "changed" },
+      ).input,
+    ).toEqual([{ role: "user", content: "Keep this response prompt" }]);
+  });
+
   it("preserves prompt text for prompt-based APIs when form fields change", () => {
     const completionsForm = requestToFormState("openai.completions.v1", {
       model: "local",

@@ -50,7 +50,9 @@ const readStream = (apiShape: ApiShapeId, request: JsonObject): boolean => {
 
 const messageSource = (apiShape: ApiShapeId, request: JsonObject): JsonValue | undefined => {
   if (apiShape === "openai.responses.v1") {
-    return request.input;
+    return typeof request.input === "string"
+      ? [{ role: "user", content: request.input }]
+      : request.input;
   }
 
   if (apiShape === "openai.completions.v1" || apiShape === "ollama.generate.v1") {
