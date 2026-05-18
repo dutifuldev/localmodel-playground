@@ -37,6 +37,9 @@ import { runRequest } from "./runs/runService";
 import { playgroundReducer } from "./state/reducer";
 import { loadPlaygroundState, savePlaygroundState } from "./state/storage";
 
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
 export const App = (): React.JSX.Element => {
   const [state, dispatch] = useReducer(playgroundReducer, undefined, loadPlaygroundState);
   const [rawJson, setRawJson] = useState("");
@@ -192,8 +195,13 @@ export const App = (): React.JSX.Element => {
     if (!file) {
       return;
     }
-    const imported = await importRequestFile(file);
-    openImportedRequest(imported);
+    try {
+      const imported = await importRequestFile(file);
+      setJsonError(undefined);
+      openImportedRequest(imported);
+    } catch (error) {
+      setJsonError(`Import failed: ${errorMessage(error)}`);
+    }
   };
 
   const importDirectory = async (): Promise<void> => {
@@ -297,12 +305,17 @@ export const App = (): React.JSX.Element => {
                 type="button"
                 className="soft-button strong"
                 disabled={!requestIsValid}
-                onClick={() =>
+                onClick={() => {
                   downloadJson(
                     `${activeTab.title}.prompt.json`,
                     tabToPromptWorkspace(activeTab),
-                  )
-                }
+                  );
+                  dispatch({
+                    type: "update-tab",
+                    tabId: activeTab.id,
+                    patch: { dirty: false },
+                  });
+                }}
               >
                 <Save size={15} /> Save
               </button>

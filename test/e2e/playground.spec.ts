@@ -31,11 +31,6 @@ test.describe("browser playground", () => {
     expect(runButton?.width).toBeGreaterThanOrEqual(34);
     expect(runButton?.height).toBeGreaterThanOrEqual(34);
     expect(Math.abs((runButton?.width ?? 0) - (runButton?.height ?? 0))).toBeLessThanOrEqual(4);
-
-    await page.screenshot({
-      path: testInfo.outputPath("local-playground-1440x1000.png"),
-      fullPage: true,
-    });
   });
 
   test("runs an OpenAI-compatible prompt from the browser", async ({ page }) => {

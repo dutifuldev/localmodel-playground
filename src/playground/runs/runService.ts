@@ -34,10 +34,10 @@ export const runRequest = async (args: RunRequestArgs): Promise<RunRecord> => {
 
   try {
     const response = await fetch(httpRequest.url, requestInit(httpRequest.init, args.signal));
-    const finishedAt = new Date().toISOString();
-    const latencyMs = Math.round(performance.now() - started);
 
     if (!response.ok) {
+      const finishedAt = new Date().toISOString();
+      const latencyMs = Math.round(performance.now() - started);
       return httpFailedRun(args, requestHash, startedAt, finishedAt, latencyMs, response);
     }
 
@@ -45,8 +45,7 @@ export const runRequest = async (args: RunRequestArgs): Promise<RunRecord> => {
       args,
       requestHash,
       startedAt,
-      finishedAt,
-      latencyMs,
+      started,
       httpRequest.streamKind,
       response,
     );
@@ -96,13 +95,14 @@ const successfulRun = async (
   args: RunRequestArgs,
   requestHash: string,
   startedAt: string,
-  finishedAt: string,
-  latencyMs: number,
+  started: number,
   streamKind: "none" | "sse" | "ndjson",
   response: Response,
 ): Promise<RunRecord> => {
   const adapter = adapterById(args.apiShape);
   const parsed = parseBody(streamKind, await response.text());
+  const finishedAt = new Date().toISOString();
+  const latencyMs = Math.round(performance.now() - started);
   const responseValue = parsed.response;
   const parsedResponse =
     parsed.textOnly !== undefined

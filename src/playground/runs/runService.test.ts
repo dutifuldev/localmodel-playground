@@ -6,6 +6,7 @@ import { runRequest } from "./runService";
 
 describe("run service", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -82,6 +83,49 @@ describe("run service", () => {
         { choices: [{ delta: { content: "ng" } }] },
       ],
     });
+  });
+
+  it("measures successful latency after the response body is consumed", async () => {
+    const events: string[] = [];
+    const now = vi
+      .spyOn(performance, "now")
+      .mockImplementationOnce(() => {
+        events.push("now");
+        return 10;
+      })
+      .mockImplementationOnce(() => {
+        events.push("now");
+        return 80;
+      });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          text: () => {
+            events.push("text");
+            return Promise.resolve(
+              JSON.stringify({ choices: [{ message: { content: "pong" } }] }),
+            );
+          },
+        } as Response),
+      ),
+    );
+    const endpoint = defaultEndpointPresets[0];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    const run = await runRequest({
+      endpoint,
+      apiShape: "openai.chat.completions.v1",
+      request: { model: "local", messages: [], stream: false },
+    });
+
+    expect(now).toHaveBeenCalledTimes(2);
+    expect(events).toEqual(["now", "text", "now"]);
+    expect(run.metrics?.latencyMs).toBe(70);
   });
 
   it("falls back to JSON parsing when a streaming request returns a normal response", async () => {
