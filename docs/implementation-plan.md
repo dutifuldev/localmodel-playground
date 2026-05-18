@@ -299,48 +299,32 @@ type RunRecord = {
 };
 ```
 
-## UI Milestones
+## End-To-End Build Scope
 
-### Milestone 1: Skeleton Playground
+Build the complete playground in one implementation pass. Do not split the work into reduced partial deliveries that defer core behavior. The initial delivery should include the full path from prompt/request creation through local endpoint execution and file-based version control.
 
-- Create app shell with sidebar, tab strip, editor column, and result column.
-- Add prompt tabs with create/switch/close/dirty state.
-- Add static endpoint presets for LM Studio and Ollama.
-- Add model selector with manual entry.
-- Add OpenAI Chat Completions request form and raw JSON view.
+The implementation pass should deliver:
 
-### Milestone 2: Local Endpoint Execution
+- App shell with sidebar, tab strip, editor column, and result column.
+- Browser-like prompt tabs with create, switch, close, duplicate, dirty state, and reload persistence.
+- Endpoint presets for LM Studio, Ollama, vLLM, and generic OpenAI-compatible servers.
+- Model discovery for LM Studio, vLLM, and Ollama, with manual model entry as fallback.
+- Request shape adapters for Chat Completions, Responses, Completions, Ollama chat, and Ollama generate.
+- Structured request editor plus raw JSON and split edit modes.
+- JSON file import with automatic shape detection, validation, and ambiguous-shape picker.
+- Backend proxy/run service for local endpoint calls, filesystem access, streaming, cancellation, and redacted logging.
+- Execution against LM Studio/vLLM chat completions and Ollama native chat, with response, raw JSON, timing, and error display.
+- Workspace file tree for prompts, requests, endpoint presets, and run records.
+- Save, save-as, duplicate, rename, delete, and load flows for version-controlled files.
+- Optional Git status badges for changed and untracked workspace files.
+- Redaction checks before saving request and run artifacts.
+- Variables panel with test values.
+- Tool/function editor for OpenAI-compatible tools.
+- Compare mode between two tabs or two saved runs.
+- Request/run history per prompt.
+- Export/import bundle support.
 
-- Add backend proxy/run service.
-- Discover models from LM Studio, vLLM, and Ollama.
-- Run chat completions against LM Studio/vLLM.
-- Run Ollama chat against native endpoint.
-- Show response, raw JSON, timing, and errors.
-- Support streaming output and cancellation.
-
-### Milestone 3: JSON Import And Schema Adapters
-
-- Add `ApiShapeAdapter` registry.
-- Add schemas and detection for Chat Completions, Responses, Completions, Ollama chat, and Ollama generate.
-- Load raw JSON files into new tabs.
-- Show validation errors and shape detection evidence.
-- Save request files back to disk.
-
-### Milestone 4: Version-Controlled Workspace
-
-- Add workspace folder picker.
-- Add file tree for prompts, requests, endpoint presets, and runs.
-- Add save-as, duplicate, rename, and delete.
-- Add optional Git status badges for changed/untracked request files.
-- Add redaction checks before saving run records.
-
-### Milestone 5: Prompt Productivity
-
-- Add variables panel with test values.
-- Add tool/function editor for OpenAI-compatible tools.
-- Add compare mode between two tabs or two runs.
-- Add request history per prompt.
-- Add export/import bundle.
+The build can still be sequenced internally for engineering sanity, but the plan is for one complete delivery rather than partial releases.
 
 ## Initial File/Module Plan
 
@@ -387,13 +371,14 @@ server/
 
 ## Open Questions
 
-- Should v1 be a browser-only app, or should it start with a local helper backend for filesystem and CORS control?
+- Should the app be packaged as a browser app with local helper backend, Electron, or Tauri?
 - Should prompt/request files live inside this repo by default, or should the app open arbitrary workspaces?
 - Should saved run responses be committed by default, or opt-in only?
 - Should the Responses API shape be treated as OpenAI-compatible only, or should local adapters be allowed to approximate it for servers that do not implement `/v1/responses`?
-- How much of the OpenAI Playground's prompt optimization/evaluation surface should be in scope for v1?
+- How much of the OpenAI Playground's prompt optimization/evaluation surface should be included in the one-pass build?
 
-## Recommended First Cut
+## Recommended Delivery
 
-Start with a local helper backend and React UI. Implement `openai.chat.completions.v1` and `ollama.chat.v1` first because they cover LM Studio, vLLM, generic OpenAI-compatible servers, and Ollama's most common chat path. Add Responses API loading/editing next, even if many local endpoints cannot execute it directly yet.
+Use a React TypeScript UI with a local helper backend from the start. The backend should own filesystem access, endpoint proxying, streaming, model discovery, and Git status so the playground can support local servers and version-controlled files without CORS or browser filesystem compromises.
 
+Ship the full adapter set in the initial delivery: `openai.chat.completions.v1`, `openai.completions.v1`, `openai.responses.v1`, `ollama.chat.v1`, and `ollama.generate.v1`. Local endpoints that cannot execute a detected shape should still be able to load, validate, edit, and save that request, while the UI clearly marks execution as unsupported for the selected endpoint.
