@@ -100,7 +100,8 @@ const successfulRun = async (
   response: Response,
 ): Promise<RunRecord> => {
   const adapter = adapterById(args.apiShape);
-  const parsed = parseBody(streamKind, await response.text());
+  const body = await readBody(response, streamKind);
+  const parsed = parseBody(streamKind, body.text);
   const finishedAt = new Date().toISOString();
   const latencyMs = Math.round(performance.now() - started);
   const responseValue = parsed.response;
@@ -112,13 +113,60 @@ const successfulRun = async (
   const base = {
     ...baseRun(args, requestHash, startedAt),
     finishedAt,
-    status: "succeeded",
+    status: body.status,
     parsed: parsedResponse,
     metrics,
+    ...(body.status === "cancelled"
+      ? { error: { kind: "unknown", message: "Run cancelled.", redacted: true } }
+      : {}),
   } satisfies RunRecord;
 
   return responseValue === undefined ? base : { ...base, response: responseValue };
 };
+
+type BodyReadResult = {
+  readonly status: "succeeded" | "cancelled";
+  readonly text: string;
+};
+
+const readBody = async (
+  response: Response,
+  streamKind: "none" | "sse" | "ndjson",
+): Promise<BodyReadResult> => {
+  if (streamKind === "none" || !response.body) {
+    return { status: "succeeded", text: await response.text() };
+  }
+
+  return readStreamingBody(response.body);
+};
+
+const readStreamingBody = async (body: ReadableStream<Uint8Array>): Promise<BodyReadResult> => {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+
+  try {
+    for (;;) {
+      const chunk = await reader.read();
+      if (chunk.done) {
+        text += decoder.decode();
+        return { status: "succeeded", text };
+      }
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+  } catch (error) {
+    if (isAbortError(error)) {
+      text += decoder.decode();
+      return { status: "cancelled", text };
+    }
+    throw error;
+  } finally {
+    reader.releaseLock();
+  }
+};
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === "AbortError";
 
 const parseBody = (
   streamKind: "none" | "sse" | "ndjson",

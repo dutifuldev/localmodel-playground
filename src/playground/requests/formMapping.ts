@@ -110,10 +110,22 @@ export const formStateToRequest = (
     return writePromptRequest(next, apiShape, form);
   }
 
-  next.messages = [
-    ...buildMessages(form, apiShape.startsWith("openai") ? "developer" : "system"),
-  ];
+  next.messages = [...buildMessages(form, developerRoleForMessages(apiShape, original))];
   return next;
+};
+
+const developerRoleForMessages = (
+  apiShape: ApiShapeId,
+  original: JsonObject,
+): "developer" | "system" => {
+  if (apiShape !== "openai.chat.completions.v1") {
+    return apiShape.startsWith("openai") ? "developer" : "system";
+  }
+
+  const instruction = parseMessages(original.messages).find((message) =>
+    isDeveloperRole(message.role),
+  );
+  return instruction?.role === "developer" ? "developer" : "system";
 };
 
 const writeResponsesRequest = (next: MutableJsonObject, form: RequestFormState): JsonObject => {

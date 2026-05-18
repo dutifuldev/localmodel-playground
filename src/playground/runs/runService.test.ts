@@ -85,6 +85,75 @@ describe("run service", () => {
     });
   });
 
+  it("keeps partial streaming output when a response body is aborted", async () => {
+    const encoder = new TextEncoder();
+    let chunks = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                chunks += 1;
+                if (chunks === 1) {
+                  controller.enqueue(
+                    encoder.encode('data: {"choices":[{"delta":{"content":"po"}}]}\n\n'),
+                  );
+                  return;
+                }
+                controller.error(new DOMException("aborted", "AbortError"));
+              },
+            }),
+          ),
+        ),
+      ),
+    );
+    const endpoint = defaultEndpointPresets[0];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    const run = await runRequest({
+      endpoint,
+      apiShape: "openai.chat.completions.v1",
+      request: { model: "local", messages: [], stream: true },
+    });
+
+    expect(run.status).toBe("cancelled");
+    expect(run.parsed?.text).toBe("po");
+    expect(run.response).toEqual({ events: [{ choices: [{ delta: { content: "po" } }] }] });
+  });
+
+  it("still parses streaming responses without a readable stream fallback", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          body: null,
+          text: () =>
+            Promise.resolve('data: {"choices":[{"delta":{"content":"fallback"}}]}\n\n'),
+        } as Response),
+      ),
+    );
+    const endpoint = defaultEndpointPresets[0];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    const run = await runRequest({
+      endpoint,
+      apiShape: "openai.chat.completions.v1",
+      request: { model: "local", messages: [], stream: true },
+    });
+
+    expect(run.status).toBe("succeeded");
+    expect(run.parsed?.text).toBe("fallback");
+  });
+
   it("measures successful latency after the response body is consumed", async () => {
     const events: string[] = [];
     const now = vi

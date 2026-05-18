@@ -62,6 +62,27 @@ describe("request form mapping", () => {
     ]);
   });
 
+  it("preserves the original OpenAI chat instruction role during structured edits", () => {
+    const request = {
+      model: "local-chat",
+      messages: [
+        { role: "system", content: "Use legacy-compatible system role." },
+        { role: "user", content: "Ping" },
+      ],
+    };
+
+    const form = requestToFormState("openai.chat.completions.v1", request);
+    const edited = formStateToRequest("openai.chat.completions.v1", request, {
+      ...form,
+      temperature: 0.2,
+    });
+
+    expect(edited.messages).toEqual([
+      { role: "system", content: "Use legacy-compatible system role." },
+      { role: "user", content: "Ping" },
+    ]);
+  });
+
   it("maps Responses input and Ollama options to their native request fields", () => {
     const responses = formStateToRequest(
       "openai.responses.v1",
