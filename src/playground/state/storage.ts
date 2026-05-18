@@ -61,7 +61,7 @@ const compactPersistableState = (state: PlaygroundState): PlaygroundState => ({
 });
 
 const isStoredPlaygroundState = (value: unknown): value is PlaygroundState => {
-  if (!isJsonObject(value) || value.schemaVersion !== 1) {
+  if (!hasStoredStateShape(value)) {
     return false;
   }
   const endpointPresets = readEndpointPresets(value["endpointPresets"]);
@@ -69,14 +69,34 @@ const isStoredPlaygroundState = (value: unknown): value is PlaygroundState => {
   const activeTabId = value["activeTabId"];
   return (
     typeof activeTabId === "string" &&
-    endpointPresets.length > 0 &&
-    tabs.length > 0 &&
+    validStoredCounts(value, endpointPresets, tabs) &&
     tabs.some((tab) => tab.id === activeTabId) &&
     tabs.every((tab) =>
       endpointPresets.some((endpoint) => endpoint.id === tab.endpointPresetId),
     )
   );
 };
+
+const hasStoredStateShape = (value: unknown): value is JsonObject => {
+  return (
+    isJsonObject(value) &&
+    value.schemaVersion === 1 &&
+    Array.isArray(value["endpointPresets"]) &&
+    Array.isArray(value.tabs)
+  );
+};
+
+const validStoredCounts = (
+  value: JsonObject,
+  endpointPresets: readonly EndpointPreset[],
+  tabs: readonly PlaygroundTab[],
+): boolean =>
+  Array.isArray(value["endpointPresets"]) &&
+  Array.isArray(value.tabs) &&
+  endpointPresets.length > 0 &&
+  endpointPresets.length === value["endpointPresets"].length &&
+  tabs.length > 0 &&
+  tabs.length === value.tabs.length;
 
 const readEndpointPresets = (value: JsonValue | undefined): readonly EndpointPreset[] =>
   Array.isArray(value) ? value.flatMap(readEndpointPreset) : [];

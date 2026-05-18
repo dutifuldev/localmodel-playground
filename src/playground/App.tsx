@@ -728,20 +728,35 @@ const RunOutput = (props: { readonly run: RunRecord }): React.JSX.Element => {
   const text = props.run.parsed?.text ?? "";
   return (
     <div className="run-output">
-      <div className="run-status">
-        <span className={`status-dot ${props.run.status}`} />
-        <strong>{props.run.status}</strong>
-        {props.run.metrics?.latencyMs ? <span>{props.run.metrics.latencyMs}ms</span> : null}
-      </div>
-      {props.run.error ? (
-        <div className="error-box">
-          <AlertCircle size={16} />
-          {props.run.error.message}
-        </div>
-      ) : (
-        <pre>{text || stableStringify(props.run.response ?? {})}</pre>
-      )}
+      <RunStatusHeader run={props.run} />
+      <RunContent run={props.run} text={text} />
     </div>
+  );
+};
+
+const RunStatusHeader = (props: { readonly run: RunRecord }): React.JSX.Element => (
+  <div className="run-status">
+    <span className={`status-dot ${props.run.status}`} />
+    <strong>{props.run.status}</strong>
+    {props.run.metrics?.latencyMs ? <span>{props.run.metrics.latencyMs}ms</span> : null}
+  </div>
+);
+
+const RunContent = (props: {
+  readonly run: RunRecord;
+  readonly text: string;
+}): React.JSX.Element => {
+  if (!props.run.error) {
+    return <pre>{props.text || stableStringify(props.run.response ?? {})}</pre>;
+  }
+  return (
+    <>
+      <div className="error-box">
+        <AlertCircle size={16} />
+        {props.run.error.message}
+      </div>
+      {props.text ? <pre>{props.text}</pre> : null}
+    </>
   );
 };
 

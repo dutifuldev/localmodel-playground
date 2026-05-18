@@ -51,6 +51,12 @@ describe("playground storage", () => {
 
     localStorage.setItem(
       "localmodel-playground-state-v1",
+      JSON.stringify({ ...valid, tabs: [...valid.tabs, {}] }),
+    );
+    expect(loadPlaygroundState().tabs).toHaveLength(1);
+
+    localStorage.setItem(
+      "localmodel-playground-state-v1",
       JSON.stringify({
         ...valid,
         endpointPresets: [{ ...valid.endpointPresets[0], auth: null }],

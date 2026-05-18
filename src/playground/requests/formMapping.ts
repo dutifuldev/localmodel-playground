@@ -1,5 +1,6 @@
 import {
   isJsonObject,
+  stableStringify,
   type JsonObject,
   type JsonValue,
   type MutableJsonObject,
@@ -55,12 +56,24 @@ const messageSource = (apiShape: ApiShapeId, request: JsonObject): JsonValue | u
     case "ollama.generate.v1":
       return ollamaGenerateMessageSource(request);
     case "openai.completions.v1":
-      return typeof request.prompt === "string"
-        ? [{ role: "user", content: request.prompt }]
-        : request.messages;
+      return completionsMessageSource(request);
     default:
       return request.messages;
   }
+};
+
+const completionsMessageSource = (request: JsonObject): JsonValue | undefined => {
+  if (typeof request.prompt === "string") {
+    return [{ role: "user", content: request.prompt }];
+  }
+  if (Array.isArray(request.prompt)) {
+    return request.prompt.map((prompt, index) => ({
+      role: "user",
+      content: typeof prompt === "string" ? prompt : stableStringify(prompt),
+      name: `prompt_${String(index + 1)}`,
+    }));
+  }
+  return request.messages;
 };
 
 const responsesMessageSource = (request: JsonObject): JsonValue[] => {

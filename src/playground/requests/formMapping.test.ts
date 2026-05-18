@@ -210,6 +210,25 @@ describe("request form mapping", () => {
     ).toBe(true);
   });
 
+  it("surfaces imported completions prompt arrays before structured edits", () => {
+    const request = {
+      model: "local",
+      prompt: ["First prompt", "Second prompt"],
+    };
+    const form = requestToFormState("openai.completions.v1", request);
+
+    expect(form.messages).toEqual([
+      { id: "message_0", role: "user", content: "First prompt" },
+      { id: "message_1", role: "user", content: "Second prompt" },
+    ]);
+    expect(
+      formStateToRequest("openai.completions.v1", request, {
+        ...form,
+        model: "changed",
+      }).prompt,
+    ).toContain("First prompt");
+  });
+
   it("folds prompt-api structured fields into native prompt fields", () => {
     const completion = formStateToRequest(
       "openai.completions.v1",
