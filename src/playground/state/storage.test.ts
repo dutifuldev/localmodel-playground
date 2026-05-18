@@ -27,4 +27,33 @@ describe("playground storage", () => {
 
     expect(loadPlaygroundState()).toEqual(state);
   });
+
+  it("does not persist in-flight run state", () => {
+    const state = createDefaultState();
+    const tab = state.tabs[0];
+    expect(tab).toBeDefined();
+    if (!tab) {
+      return;
+    }
+
+    savePlaygroundState({
+      ...state,
+      tabs: [
+        {
+          ...tab,
+          currentRun: {
+            schemaVersion: 1,
+            id: "run_pending",
+            startedAt: "2026-05-18T00:00:00.000Z",
+            endpointPresetId: tab.endpointPresetId,
+            apiShape: tab.apiShape,
+            requestHash: "pending",
+            status: "running",
+          },
+        },
+      ],
+    });
+
+    expect(loadPlaygroundState().tabs[0]?.currentRun).toBeUndefined();
+  });
 });

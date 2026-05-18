@@ -118,14 +118,26 @@ const parseBody = (
 ): { readonly response?: JsonValue; readonly textOnly?: string } => {
   if (streamKind === "sse") {
     const stream = parseSseText(body);
+    if (!stream.text && stream.events.length === 0) {
+      return parseNonStreamingBody(body);
+    }
     return { response: { events: [...stream.events] }, textOnly: stream.text };
   }
 
   if (streamKind === "ndjson") {
     const stream = parseNdjsonText(body);
+    if (!stream.text && stream.events.length === 0) {
+      return parseNonStreamingBody(body);
+    }
     return { response: { events: [...stream.events] }, textOnly: stream.text };
   }
 
+  return parseNonStreamingBody(body);
+};
+
+const parseNonStreamingBody = (
+  body: string,
+): { readonly response?: JsonValue; readonly textOnly?: string } => {
   const parsed = parseJson(body);
   return parsed.ok ? { response: parsed.value } : { textOnly: body };
 };

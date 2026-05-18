@@ -19,8 +19,17 @@ export const loadPlaygroundState = (): PlaygroundState => {
 };
 
 export const savePlaygroundState = (state: PlaygroundState): void => {
-  localStorage.setItem(stateKey, JSON.stringify(state));
+  localStorage.setItem(stateKey, JSON.stringify(persistableState(state)));
 };
+
+const persistableState = (state: PlaygroundState): PlaygroundState => ({
+  ...state,
+  tabs: state.tabs.map((tab) => {
+    const { currentRun: _currentRun, ...rest } = tab;
+    void _currentRun;
+    return rest;
+  }),
+});
 
 const isStoredPlaygroundState = (value: unknown): value is PlaygroundState => {
   if (!isJsonObject(value) || value.schemaVersion !== 1) {

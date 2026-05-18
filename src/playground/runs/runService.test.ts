@@ -73,6 +73,33 @@ describe("run service", () => {
     });
   });
 
+  it("falls back to JSON parsing when a streaming request returns a normal response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json({
+            choices: [{ message: { content: "json pong" }, finish_reason: "stop" }],
+          }),
+        ),
+      ),
+    );
+    const endpoint = defaultEndpointPresets[0];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    const run = await runRequest({
+      endpoint,
+      apiShape: "openai.chat.completions.v1",
+      request: { model: "local", messages: [], stream: true },
+    });
+
+    expect(run.status).toBe("succeeded");
+    expect(run.parsed).toEqual({ text: "json pong", finishReason: "stop" });
+  });
+
   it("returns unsupported, HTTP, and network diagnostics as run records", async () => {
     const lmStudio = defaultEndpointPresets[0];
     expect(lmStudio).toBeDefined();

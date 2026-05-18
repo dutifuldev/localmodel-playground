@@ -56,7 +56,7 @@ test.describe("browser playground", () => {
     await page.getByLabel("Run").click();
 
     await expect(page.getByText("succeeded")).toBeVisible();
-    await expect(page.getByText("pong")).toBeVisible();
+    await expect(page.locator(".run-output pre").filter({ hasText: "pong" })).toBeVisible();
   });
 
   test("keeps the full playground usable on mobile", async ({ page }, testInfo) => {

@@ -40,9 +40,7 @@ describe("model discovery", () => {
       ok: true,
       models: ["lmstudio-model"],
     });
-    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:1234/v1/models", {
-      headers: { "content-type": "application/json" },
-    });
+    expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:1234/v1/models", undefined);
   });
 
   it("includes endpoint auth headers during discovery", async () => {
@@ -75,7 +73,6 @@ describe("model discovery", () => {
     expect(fetch).toHaveBeenCalledWith("http://127.0.0.1:8000/v1/models", {
       headers: {
         authorization: "Bearer token-123",
-        "content-type": "application/json",
       },
     });
   });

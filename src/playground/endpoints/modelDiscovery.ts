@@ -1,6 +1,5 @@
 import { isJsonObject, type JsonValue } from "../../shared/json";
 import type { EndpointPreset } from "../../shared/types";
-import { openAiRequestHeaders } from "../requests/adapters/openaiHeaders";
 import { normalizeBaseUrl } from "./providers";
 
 type ModelDiscoveryResult =
@@ -16,7 +15,11 @@ export const discoverModels = async (
 
   const url = `${normalizeBaseUrl(endpoint.baseUrl)}${endpoint.modelDiscovery.path}`;
   try {
-    const response = await fetch(url, { headers: openAiRequestHeaders(endpoint) });
+    const headers = modelDiscoveryAuthHeaders(endpoint);
+    const response = await fetch(
+      url,
+      Object.keys(headers).length > 0 ? { headers } : undefined,
+    );
     if (!response.ok) {
       return {
         ok: false,
@@ -35,6 +38,16 @@ export const discoverModels = async (
       message: error instanceof Error ? error.message : "Model discovery failed",
     };
   }
+};
+
+const modelDiscoveryAuthHeaders = (endpoint: EndpointPreset): Record<string, string> => {
+  if (endpoint.auth.type === "bearer" && endpoint.auth.token) {
+    return { authorization: `Bearer ${endpoint.auth.token}` };
+  }
+  if (endpoint.auth.type === "header" && endpoint.auth.headerValue) {
+    return { [endpoint.auth.headerName]: endpoint.auth.headerValue };
+  }
+  return {};
 };
 
 export const parseModelList = (
