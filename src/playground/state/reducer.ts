@@ -6,6 +6,7 @@ import type {
   RunRecord,
   SourceRef,
 } from "../../shared/types";
+import { endpointSupportsShape } from "../endpoints/providers";
 import { createDefaultTab, createTabFromRequest } from "./defaults";
 
 export type PlaygroundAction =
@@ -60,11 +61,28 @@ const reduceBaseAction = (state: PlaygroundState, action: BaseAction): Playgroun
   }
 };
 
-const openTab = (state: PlaygroundState, tab: PlaygroundTab): PlaygroundState => ({
-  ...state,
-  tabs: [...state.tabs, tab],
-  activeTabId: tab.id,
-});
+const openTab = (state: PlaygroundState, tab: PlaygroundTab): PlaygroundState => {
+  const normalized = normalizeTabEndpoint(state, tab);
+  return {
+    ...state,
+    tabs: [...state.tabs, normalized],
+    activeTabId: normalized.id,
+  };
+};
+
+const normalizeTabEndpoint = (state: PlaygroundState, tab: PlaygroundTab): PlaygroundTab => {
+  const existing = state.endpointPresets.find(
+    (endpoint) => endpoint.id === tab.endpointPresetId,
+  );
+  if (existing) {
+    return tab;
+  }
+
+  const fallback =
+    state.endpointPresets.find((endpoint) => endpointSupportsShape(endpoint, tab.apiShape)) ??
+    state.endpointPresets[0];
+  return fallback ? { ...tab, endpointPresetId: fallback.id } : tab;
+};
 
 const closeTab = (state: PlaygroundState, tabId: string, force: boolean): PlaygroundState => {
   if (state.tabs.length === 1) {

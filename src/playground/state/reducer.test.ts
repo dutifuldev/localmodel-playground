@@ -128,4 +128,26 @@ describe("playground reducer", () => {
       "ollama-local",
     );
   });
+
+  it("normalizes imported workspace tabs with unknown endpoint presets", () => {
+    const state = createDefaultState();
+    const source = state.tabs[0];
+    expect(source).toBeDefined();
+    if (!source) {
+      return;
+    }
+
+    const opened = playgroundReducer(state, {
+      type: "open-tab",
+      tab: {
+        ...source,
+        id: "imported_tab",
+        endpointPresetId: "missing-endpoint",
+      },
+    });
+
+    expect(opened.tabs.find((tab) => tab.id === "imported_tab")?.endpointPresetId).toBe(
+      "lmstudio-local",
+    );
+  });
 });
