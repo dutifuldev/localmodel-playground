@@ -101,9 +101,31 @@ const sortJson = (value: JsonValue): JsonValue => {
 };
 
 export const jsonHash = async (value: JsonValue): Promise<string> => {
-  const bytes = new TextEncoder().encode(stableStringify(value));
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const source = stableStringify(value);
+  const subtle = readSubtleCrypto();
+  if (!subtle) {
+    return fallbackHash(source);
+  }
+
+  const bytes = new TextEncoder().encode(source);
+  const digest = await subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+};
+
+const readSubtleCrypto = (): SubtleCrypto | undefined => {
+  const browserGlobal = globalThis as unknown as {
+    readonly crypto?: { readonly subtle?: SubtleCrypto };
+  };
+  return browserGlobal.crypto?.subtle;
+};
+
+const fallbackHash = (source: string): string => {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 };

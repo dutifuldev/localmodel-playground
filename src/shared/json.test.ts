@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   getBoolean,
@@ -10,6 +10,10 @@ import {
 } from "./json";
 
 describe("json helpers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("parses valid JSON and reports invalid JSON without throwing", () => {
     expect(parseJson('{"model":"local","stream":true}')).toEqual({
       ok: true,
@@ -42,5 +46,14 @@ describe("json helpers", () => {
       '{\n  "a": {\n    "c": 3,\n    "d": 4\n  },\n  "b": 2\n}',
     );
     await expect(jsonHash(first)).resolves.toBe(await jsonHash(second));
+  });
+
+  it("hashes deterministically when Web Crypto subtle digest is unavailable", async () => {
+    vi.stubGlobal("crypto", {});
+    const first = { b: 2, a: { d: 4, c: 3 } };
+    const second = { a: { c: 3, d: 4 }, b: 2 };
+
+    await expect(jsonHash(first)).resolves.toBe(await jsonHash(second));
+    await expect(jsonHash(first)).resolves.toMatch(/^fnv1a-[a-f0-9]{8}$/u);
   });
 });

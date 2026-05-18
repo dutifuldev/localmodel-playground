@@ -158,6 +158,21 @@ export const App = (): React.JSX.Element => {
         signal: controller.signal,
       });
       dispatch({ type: "record-run", tabId, run });
+    } catch (error) {
+      dispatch({
+        type: "record-run",
+        tabId,
+        run: {
+          ...pending,
+          finishedAt: new Date().toISOString(),
+          status: "failed",
+          error: {
+            kind: "unknown",
+            message: errorMessage(error),
+            redacted: true,
+          },
+        },
+      });
     } finally {
       if (abortControllersRef.current.get(tabId) === controller) {
         abortControllersRef.current.delete(tabId);
