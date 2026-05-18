@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/endpoint-preset.v1.json",
+  "title": "LocalModel Endpoint Preset",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "provider", "baseUrl", "supportedShapes"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "provider": {
+      "enum": ["lmstudio", "ollama", "vllm", "openai-compatible", "custom"]
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "auth": {
+      "type": "object",
+      "required": ["type", "exportable"],
+      "properties": {
+        "type": {
+          "enum": ["none", "bearer", "header"]
+        },
+        "headerName": {
+          "type": "string"
+        },
+        "valueStorage": {
+          "enum": ["none", "browser-local", "redacted"]
+        },
+        "exportable": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "modelDiscovery": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["openai-models", "ollama-tags", "manual", "custom"]
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "supportedShapes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}
+

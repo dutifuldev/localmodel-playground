@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.json",
+  "title": "LocalModel Playground State",
+  "type": "object",
+  "required": ["schemaVersion", "activeTabId", "tabs", "endpointPresets"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "activeTabId": {
+      "type": ["string", "null"]
+    },
+    "tabs": {
+      "type": "array",
+      "items": {
+        "$ref": "./playground-tab.v1.schema.json"
+      }
+    },
+    "endpointPresets": {
+      "type": "array",
+      "items": {
+        "$ref": "./endpoint-preset.v1.schema.json"
+      }
+    },
+    "recentSources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "label"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["file", "directory", "bundle", "example"]
+          },
+          "label": {
+            "type": "string"
+          },
+          "relativePath": {
+            "type": "string"
+          },
+          "lastOpenedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "sidebarCollapsed": {
+          "type": "boolean"
+        },
+        "resultPanelWidth": {
+          "type": "number",
+          "minimum": 240
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
+

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/playground-tab.v1.json",
+  "title": "LocalModel Playground Tab",
+  "type": "object",
+  "required": ["schemaVersion", "id", "title", "dirty", "apiShape", "request", "editorMode", "viewState", "runHistory"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "dirty": {
+      "type": "boolean"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": ["none", "file", "directory", "bundle", "example", "download"]
+        },
+        "fileName": {
+          "type": "string"
+        },
+        "relativePath": {
+          "type": "string"
+        },
+        "directoryId": {
+          "type": "string"
+        },
+        "canSaveBack": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "endpointPresetId": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "apiShape": {
+      "type": "string"
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "editorMode": {
+      "enum": ["form", "json", "split"]
+    },
+    "viewState": {
+      "type": "object",
+      "required": ["activePanel", "sidebarCollapsed"],
+      "properties": {
+        "activePanel": {
+          "enum": ["conversation", "raw-response", "request-json", "schema"]
+        },
+        "sidebarCollapsed": {
+          "type": "boolean"
+        },
+        "resultPanelWidth": {
+          "type": "number",
+          "minimum": 240
+        }
+      },
+      "additionalProperties": true
+    },
+    "currentRun": {
+      "$ref": "./run-record.v1.schema.json"
+    },
+    "lastRun": {
+      "$ref": "./run-record.v1.schema.json"
+    },
+    "runHistory": {
+      "type": "array",
+      "items": {
+        "$ref": "./run-record.v1.schema.json"
+      }
+    }
+  },
+  "additionalProperties": true
+}
+

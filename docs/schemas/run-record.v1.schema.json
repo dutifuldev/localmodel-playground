@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dutiful.dev/localmodel-playground/schemas/run-record.v1.json",
+  "title": "LocalModel Run Record",
+  "type": "object",
+  "required": ["schemaVersion", "id", "startedAt", "endpointPresetId", "apiShape", "requestHash", "status"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "type": "string"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "endpointPresetId": {
+      "type": "string"
+    },
+    "apiShape": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    },
+    "requestHash": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["running", "succeeded", "failed", "cancelled"]
+    },
+    "response": true,
+    "parsed": true,
+    "error": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "redacted": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "latencyMs": {
+          "type": "number",
+          "minimum": 0
+        },
+        "promptTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completionTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalTokens": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
+

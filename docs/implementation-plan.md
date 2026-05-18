@@ -236,6 +236,57 @@ Use a metadata envelope only when needed:
 
 The loader should also accept raw API request JSON without the envelope.
 
+## Persisted State Schemas
+
+All persisted playground data should use explicit, versioned JSON schemas documented in this repo. Every exported file and browser-local state object should have a stable `schemaVersion` or `$schema` field so future migrations are mechanical and reviewable.
+
+Schema files should live under:
+
+```text
+docs/schemas/
+  playground-state.v1.schema.json
+  playground-tab.v1.schema.json
+  endpoint-preset.v1.schema.json
+  request-envelope.v1.schema.json
+  prompt-workspace.v1.schema.json
+  run-record.v1.schema.json
+```
+
+The docs should define, in prose and JSON Schema, at least:
+
+- `playground-state.v1`: browser-local app state, including open tabs, active tab id, endpoint presets, recent directories, layout preferences, and draft metadata.
+- `playground-tab.v1`: one self-contained tab/playground view, including request JSON, selected API shape, endpoint/model selection, view state, current run, last run, run history, dirty state, source file handle metadata, and directory-relative path.
+- `endpoint-preset.v1`: provider, base URL, model discovery settings, supported API shapes, and redacted auth configuration.
+- `request-envelope.v1`: optional wrapper around raw request JSON with API shape, endpoint preset id, source metadata, and request body.
+- `prompt-workspace.v1`: saved prompt workspace file for one or more tabs.
+- `run-record.v1`: request hash, endpoint/model, status, parsed response, raw response, timing, token metrics, and redacted error metadata.
+
+Persisted playground state should follow this shape:
+
+```json
+{
+  "$schema": "https://dutiful.dev/localmodel-playground/schemas/playground-state.v1.json",
+  "schemaVersion": 1,
+  "activeTabId": "tab_01",
+  "tabs": [],
+  "endpointPresets": [],
+  "recentSources": [],
+  "layout": {
+    "sidebarCollapsed": false,
+    "resultPanelWidth": 480
+  }
+}
+```
+
+Rules for all schemas:
+
+- No secrets in exported files.
+- Auth values may exist only in browser-local state and must be marked non-exportable.
+- Unknown future fields should be preserved where practical.
+- Schema migrations must be explicit functions, not ad hoc object rewrites.
+- The implementation should validate imported files before mutating active tab state.
+- Validation errors should be shown in the schema diagnostics panel with JSON pointer paths.
+
 ## External Directory Loading
 
 Directory support should use browser-native capabilities:
