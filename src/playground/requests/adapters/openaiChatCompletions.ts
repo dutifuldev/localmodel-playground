@@ -16,7 +16,7 @@ export const openAiChatCompletionsAdapter: ApiShapeAdapter = {
   defaultRequest: (model) => ({
     model,
     messages: [
-      { role: "developer", content: "You are concise and precise." },
+      { role: "system", content: "You are concise and precise." },
       { role: "user", content: "Reply with exactly: pong" },
     ],
     temperature: 0.7,

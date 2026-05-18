@@ -362,7 +362,9 @@ const TopBar = (): React.JSX.Element => (
     </div>
     <nav className="topnav" aria-label="Top navigation">
       <a href="https://github.com/dutifuldev/localmodel-playground">GitHub</a>
-      <a href="/docs/implementation-plan.md">Docs</a>
+      <a href="https://github.com/dutifuldev/localmodel-playground/blob/main/docs/implementation-plan.md">
+        Docs
+      </a>
       <button className="avatar-button" type="button" aria-label="Settings">
         <Settings2 size={16} />
       </button>
