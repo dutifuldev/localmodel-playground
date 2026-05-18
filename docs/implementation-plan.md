@@ -44,8 +44,10 @@ The prompt creation surface should echo the OpenAI Playground structure:
 
 Tabs should behave like browser tabs:
 
-- Each tab represents one prompt/request workspace.
-- A tab has title, dirty state, request file path, selected endpoint preset, selected model, API shape, editor state, and last run result.
+- Each tab is a full standalone playground view, not just a prompt editor.
+- Each tab owns its complete request-construction state, endpoint/model selection, editor layout, response panel state, run status, and run history.
+- Switching tabs must restore the whole playground state for that tab, including its last response, raw response, errors, timing, token metrics, streaming/cancelled state, and any saved run records.
+- A tab has title, dirty state, request file path, selected endpoint preset, selected model, API shape, editor state, current run, last run result, and run history.
 - Users can create, close, duplicate, reorder, and switch tabs.
 - Closing a dirty tab requires save/discard confirmation.
 - Tabs should survive reload through local app state.
@@ -62,7 +64,14 @@ type PlaygroundTab = {
   apiShape: ApiShapeId;
   request: JsonObject;
   editorMode: "form" | "json" | "split";
+  viewState: {
+    activePanel: "conversation" | "raw-response" | "request-json" | "schema";
+    sidebarCollapsed: boolean;
+    resultPanelWidth?: number;
+  };
+  currentRun?: RunRecord;
   lastRun?: RunRecord;
+  runHistory: RunRecord[];
 };
 ```
 
@@ -332,7 +341,7 @@ Build the complete browser-only playground in one implementation pass. Do not sp
 The implementation pass should deliver:
 
 - App shell with sidebar, tab strip, editor column, and result column.
-- Browser-like prompt tabs with create, switch, close, duplicate, dirty state, and reload persistence.
+- Browser-like prompt tabs with create, switch, close, duplicate, dirty state, reload persistence, and full per-tab playground/run state.
 - Endpoint presets for LM Studio, Ollama, vLLM, and generic OpenAI-compatible servers.
 - Model discovery for LM Studio, vLLM, and Ollama, with manual model entry as fallback.
 - Request shape adapters for Chat Completions, Responses, Completions, Ollama chat, and Ollama generate.
