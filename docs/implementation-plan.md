@@ -4,7 +4,7 @@ Date: 2026-05-18
 
 ## Goal
 
-Build a local-model playground that feels like a simplified OpenAI Playground for request construction and response inspection, while adding first-class support for local endpoints, version-controlled prompt/request files, and browser-like prompt tabs.
+Build a browser-only local-model playground that feels like a simplified OpenAI Playground for request construction and response inspection, while adding first-class support for local endpoints, version-controlled prompt/request files, and browser-like prompt tabs.
 
 The app should let a user:
 
@@ -15,7 +15,7 @@ The app should let a user:
 - Load a JSON request file and automatically detect its API shape.
 - Edit the request through structured UI controls and raw JSON when needed.
 - Run the request against the selected local model endpoint.
-- Save prompts, requests, responses, and revisions in normal version-controlled files.
+- Save prompts, requests, responses, and revisions as downloadable/importable files that can be committed normally.
 
 ## Product Shape
 
@@ -106,7 +106,9 @@ type EndpointPreset = {
 };
 ```
 
-Secrets should not be stored in prompt files. If auth is needed, store only an env var name or local secret reference.
+Secrets should not be stored in prompt files. If auth is needed, keep it in browser-local settings only, and make exported endpoint presets redact bearer tokens or custom auth header values.
+
+Browser-only constraint: endpoint calls go directly from the browser with `fetch`. Local servers must allow browser requests with compatible CORS headers. If an endpoint does not allow browser access, the app should show a clear connectivity/CORS diagnostic and provide the required local server configuration hint rather than silently failing.
 
 ## API Shapes
 
@@ -179,7 +181,7 @@ The imported JSON file should remain the source of truth until the user saves a 
 
 ## Version-Controlled File Model
 
-Use plain files so Git captures every prompt and request change.
+Use plain files so Git captures every prompt and request change. Because the app is browser-only, it cannot run Git or freely write arbitrary local paths. Version control is handled by letting users import files, edit them in browser tabs, then download/save updated artifacts back into their Git working tree.
 
 Suggested repo/user workspace structure:
 
@@ -226,7 +228,7 @@ The loader should also accept raw API request JSON without the envelope.
 
 Use two layers:
 
-- Project files for version-controlled artifacts.
+- User-managed files for version-controlled artifacts.
 - Browser/local app state for volatile UI state.
 
 Version-controlled:
@@ -242,27 +244,28 @@ Local-only:
 - Open tabs and layout state.
 - Recently used endpoints.
 - Unsaved draft snapshots.
-- Secret references and auth values.
+- Browser-local auth values that are never exported unless the user explicitly opts in.
+- Last imported/exported file handles when the browser File System Access API is available.
 
 ## Suggested Technical Stack
 
-Recommended first implementation:
+Browser-only implementation:
 
 - Vite + React + TypeScript for the UI.
 - Monaco Editor for raw JSON editing and schema validation.
 - Zustand or equivalent small state store for tabs/session state.
 - Zod or JSON Schema validation through Ajv for request schemas.
-- Node/Electron or Tauri only if direct filesystem access is required in the first release.
-
-Important tradeoff:
-
-- Browser-only app is simpler but has CORS and filesystem limitations.
-- Desktop shell or local helper server makes local endpoints, file watching, and Git workflows much cleaner.
+- Browser `fetch` for local endpoint calls.
+- Browser File API for import.
+- File System Access API where supported for direct save-back to user-selected files.
+- Download fallback for browsers without File System Access API.
+- IndexedDB or localStorage for open tabs, endpoint presets, drafts, and run history.
 
 Recommended architecture:
 
-- Web UI talks to a local app backend.
-- Backend handles filesystem reads/writes, model endpoint proxying, streaming, and optional Git status.
+- The browser app talks directly to configured local endpoints.
+- File import/export stays explicit and user-driven.
+- Git awareness is derived from user-managed workspace files, not by shelling out to Git.
 - UI stays provider-agnostic and uses API shape adapters.
 
 ## Streaming And Runs
@@ -273,7 +276,7 @@ The run service should support:
 - Server-sent event streaming for OpenAI-compatible endpoints.
 - Ollama newline-delimited JSON streaming.
 - Cancellation through AbortController.
-- Request/response logging with redaction.
+- Request/response logging with redaction before anything is saved or downloaded.
 
 Run record:
 
@@ -301,7 +304,7 @@ type RunRecord = {
 
 ## End-To-End Build Scope
 
-Build the complete playground in one implementation pass. Do not split the work into reduced partial deliveries that defer core behavior. The initial delivery should include the full path from prompt/request creation through local endpoint execution and file-based version control.
+Build the complete browser-only playground in one implementation pass. Do not split the work into reduced partial deliveries that defer core behavior. The initial delivery should include the full path from prompt/request creation through local endpoint execution and file-based version control through import/export/save-back flows.
 
 The implementation pass should deliver:
 
@@ -312,11 +315,11 @@ The implementation pass should deliver:
 - Request shape adapters for Chat Completions, Responses, Completions, Ollama chat, and Ollama generate.
 - Structured request editor plus raw JSON and split edit modes.
 - JSON file import with automatic shape detection, validation, and ambiguous-shape picker.
-- Backend proxy/run service for local endpoint calls, filesystem access, streaming, cancellation, and redacted logging.
+- Direct browser execution for local endpoint calls, streaming, cancellation, and redacted logging.
 - Execution against LM Studio/vLLM chat completions and Ollama native chat, with response, raw JSON, timing, and error display.
-- Workspace file tree for prompts, requests, endpoint presets, and run records.
-- Save, save-as, duplicate, rename, delete, and load flows for version-controlled files.
-- Optional Git status badges for changed and untracked workspace files.
+- Import/export file browser for prompts, requests, endpoint presets, and run records.
+- Save, save-as, duplicate, rename-in-app, delete-in-app, and load flows for browser-managed tabs and user-managed files.
+- Dirty state and file-handle indicators for imported files.
 - Redaction checks before saving request and run artifacts.
 - Variables panel with test values.
 - Tool/function editor for OpenAI-compatible tools.
@@ -342,6 +345,7 @@ src/
       endpointStore.ts
       EndpointPanel.tsx
       providers.ts
+      corsDiagnostics.ts
     requests/
       adapters/
         openaiChatCompletions.ts
@@ -357,28 +361,25 @@ src/
       runService.ts
       ResponsePanel.tsx
       streamParsers.ts
+    files/
+      fileImport.ts
+      fileExport.ts
+      fileHandles.ts
   shared/
     json.ts
     redaction.ts
     types.ts
-server/
-  index.ts
-  filesystem.ts
-  endpointProxy.ts
-  modelDiscovery.ts
-  gitStatus.ts
 ```
 
 ## Open Questions
 
-- Should the app be packaged as a browser app with local helper backend, Electron, or Tauri?
-- Should prompt/request files live inside this repo by default, or should the app open arbitrary workspaces?
-- Should saved run responses be committed by default, or opt-in only?
+- Should saved run responses be downloaded automatically, stored only in browser state, or opt-in per run?
 - Should the Responses API shape be treated as OpenAI-compatible only, or should local adapters be allowed to approximate it for servers that do not implement `/v1/responses`?
 - How much of the OpenAI Playground's prompt optimization/evaluation surface should be included in the one-pass build?
+- Which local server CORS configuration snippets should be documented inside the UI for LM Studio, Ollama, and vLLM?
 
 ## Recommended Delivery
 
-Use a React TypeScript UI with a local helper backend from the start. The backend should own filesystem access, endpoint proxying, streaming, model discovery, and Git status so the playground can support local servers and version-controlled files without CORS or browser filesystem compromises.
+Use a React TypeScript browser-only UI. The app should run as static web assets and use direct browser APIs for endpoint calls, streaming, import/export, save-back where available, and local draft persistence. Local server CORS support is a hard prerequisite for direct execution; the app should detect and explain CORS/connectivity failures.
 
 Ship the full adapter set in the initial delivery: `openai.chat.completions.v1`, `openai.completions.v1`, `openai.responses.v1`, `ollama.chat.v1`, and `ollama.generate.v1`. Local endpoints that cannot execute a detected shape should still be able to load, validate, edit, and save that request, while the UI clearly marks execution as unsupported for the selected endpoint.
