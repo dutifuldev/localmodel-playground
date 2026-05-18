@@ -91,6 +91,10 @@ export const App = (): React.JSX.Element => {
     updateRequest(formStateToRequest(activeTab.apiShape, activeTab.request, next));
   };
 
+  const updateComposerPrompt = (content: string): void => {
+    updateForm({ ...formState, messages: writeComposerPrompt(formState.messages, content) });
+  };
+
   const loadModels = async (): Promise<void> => {
     setModelStatus("Discovering models...");
     const result = await discoverModels(activeEndpoint);
@@ -342,6 +346,8 @@ export const App = (): React.JSX.Element => {
             <ResponsePanel
               tab={activeTab}
               canRun={requestIsValid}
+              composerValue={readComposerPrompt(formState.messages)}
+              onComposerChange={updateComposerPrompt}
               onRun={() => void runActiveTab()}
               onStop={stopRun}
             />
@@ -669,6 +675,8 @@ const Section = (props: {
 const ResponsePanel = (props: {
   readonly tab: PlaygroundTab;
   readonly canRun: boolean;
+  readonly composerValue: string;
+  readonly onComposerChange: (content: string) => void;
   readonly onRun: () => void;
   readonly onStop: () => void;
 }): React.JSX.Element => {
@@ -678,7 +686,12 @@ const ResponsePanel = (props: {
     <section className="response-column">
       <ResponseBody run={run} />
       <div className="composer">
-        <textarea value="Chat with your prompt..." readOnly aria-label="Chat composer" />
+        <textarea
+          value={props.composerValue}
+          onChange={(event) => props.onComposerChange(event.currentTarget.value)}
+          placeholder="Chat with your prompt..."
+          aria-label="Chat composer"
+        />
         <div className="composer-actions">
           <button
             type="button"
@@ -718,6 +731,34 @@ const ResponsePanel = (props: {
       </div>
     </section>
   );
+};
+
+const readComposerPrompt = (messages: readonly MessageRow[]): string => {
+  const index = findComposerMessageIndex(messages);
+  return index >= 0 ? (messages[index]?.content ?? "") : "";
+};
+
+const writeComposerPrompt = (
+  messages: readonly MessageRow[],
+  content: string,
+): readonly MessageRow[] => {
+  const index = findComposerMessageIndex(messages);
+  if (index >= 0) {
+    return messages.map((message, messageIndex) =>
+      messageIndex === index ? { ...message, content } : message,
+    );
+  }
+
+  return [...messages, { id: `message_${String(Date.now())}`, role: "user", content }];
+};
+
+const findComposerMessageIndex = (messages: readonly MessageRow[]): number => {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      return index;
+    }
+  }
+  return -1;
 };
 
 const ResponseBody = (props: { readonly run: RunRecord | undefined }): React.JSX.Element => (

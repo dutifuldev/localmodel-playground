@@ -34,7 +34,9 @@ test.describe("browser playground", () => {
   });
 
   test("runs an OpenAI-compatible prompt from the browser", async ({ page }) => {
+    let requestBody = "";
     await page.route("http://127.0.0.1:1234/v1/chat/completions", async (route) => {
+      requestBody = route.request().postData() ?? "";
       await route.fulfill({
         status: 200,
         headers: {
@@ -48,10 +50,12 @@ test.describe("browser playground", () => {
     });
 
     await page.goto("/");
+    await page.getByLabel("Chat composer").fill("Say pong through the composer.");
     await page.getByLabel("Run").click();
 
     await expect(page.getByText("succeeded")).toBeVisible();
     await expect(page.locator(".run-output pre").filter({ hasText: "pong" })).toBeVisible();
+    expect(requestBody).toContain("Say pong through the composer.");
   });
 
   test("keeps the full playground usable on mobile", async ({ page }, testInfo) => {

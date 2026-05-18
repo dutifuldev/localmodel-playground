@@ -493,7 +493,7 @@ textarea {
   padding: 12px 4px 14px;
   border: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text);
   resize: none;
 }
 
