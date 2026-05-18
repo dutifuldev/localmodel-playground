@@ -8,6 +8,7 @@ import type {
 } from "../../../shared/types";
 import { normalizeBaseUrl } from "../../endpoints/providers";
 import { openAiRequestHeaders } from "./openaiHeaders";
+import { parseOpenAiUsage } from "./openaiUsage";
 
 export const openAiChatCompletionsAdapter: ApiShapeAdapter = {
   id: "openai.chat.completions.v1",
@@ -85,12 +86,23 @@ export const parseChatCompletionsResponse = (response: JsonValue): ParsedRunResp
     return { text: "" };
   }
 
+  return parseChoiceResponse(first, parseOpenAiUsage(response["usage"]));
+};
+
+const parseChoiceResponse = (
+  first: JsonObject,
+  usage: ParsedRunResponse["usage"],
+): ParsedRunResponse => {
   const message = first.message;
   const delta = first.delta;
   const text = extractContent(message) ?? extractContent(delta) ?? "";
   const finishReason =
     typeof first.finish_reason === "string" ? first.finish_reason : undefined;
-  return finishReason ? { text, finishReason } : { text };
+  return {
+    text,
+    ...(finishReason ? { finishReason } : {}),
+    ...(usage ? { usage } : {}),
+  };
 };
 
 const extractContent = (value: JsonValue | undefined): string | undefined => {

@@ -16,6 +16,7 @@ describe("run service", () => {
         Promise.resolve(
           Response.json({
             choices: [{ message: { content: "pong" }, finish_reason: "stop" }],
+            usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 },
           }),
         ),
       ),
@@ -34,9 +35,19 @@ describe("run service", () => {
 
     expect(run.status).toBe("succeeded");
     expect(run.model).toBe("local");
-    expect(run.parsed).toEqual({ text: "pong", finishReason: "stop" });
+    expect(run.parsed).toEqual({
+      text: "pong",
+      finishReason: "stop",
+      usage: { promptTokens: 2, completionTokens: 1, totalTokens: 3 },
+    });
+    expect(run.metrics).toMatchObject({
+      promptTokens: 2,
+      completionTokens: 1,
+      totalTokens: 3,
+    });
     expect(run.response).toEqual({
       choices: [{ message: { content: "pong" }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 },
     });
   });
 

@@ -8,6 +8,7 @@ import type {
 } from "../../../shared/types";
 import { normalizeBaseUrl } from "../../endpoints/providers";
 import { openAiRequestHeaders } from "./openaiHeaders";
+import { parseOpenAiUsage } from "./openaiUsage";
 
 export const openAiCompletionsAdapter: ApiShapeAdapter = {
   id: "openai.completions.v1",
@@ -70,5 +71,6 @@ export const parseCompletionsResponse = (response: JsonValue): ParsedRunResponse
   }
   const first = response.choices.find(isJsonObject);
   const text = first && typeof first.text === "string" ? first.text : "";
-  return { text };
+  const usage = parseOpenAiUsage(response["usage"]);
+  return { text, ...(usage ? { usage } : {}) };
 };

@@ -29,15 +29,15 @@ export const requestToFormState = (
   const stream = readStream(apiShape, request);
   const source = messageSource(apiShape, request);
   const messages = parseMessages(source);
-  const developerMessage =
-    messages.find((message) => isDeveloperRole(message.role))?.content ?? "";
+  const developerIndex = messages.findIndex((message) => isDeveloperRole(message.role));
+  const developerMessage = developerIndex >= 0 ? (messages[developerIndex]?.content ?? "") : "";
 
   return {
     model,
     temperature,
     stream,
     developerMessage,
-    messages: messages.filter((message) => !isDeveloperRole(message.role)),
+    messages: messages.filter((_, index) => index !== developerIndex),
   };
 };
 
@@ -85,7 +85,10 @@ export const formStateToRequest = (
   }
 
   if (apiShape === "openai.completions.v1" || apiShape === "ollama.generate.v1") {
-    next.prompt = form.messages[0]?.content ?? "";
+    next.prompt = promptFromForm(form, apiShape !== "ollama.generate.v1");
+    if (apiShape === "ollama.generate.v1" && form.developerMessage.trim()) {
+      next["system"] = form.developerMessage;
+    }
     return next;
   }
 
@@ -145,6 +148,21 @@ const buildMessages = (
   );
   return rows;
 };
+
+const promptFromForm = (form: RequestFormState, includeDeveloper: boolean): string => {
+  const developerLine =
+    includeDeveloper && form.developerMessage.trim()
+      ? [`Developer: ${form.developerMessage}`]
+      : [];
+  if (developerLine.length === 0 && form.messages.length === 1) {
+    return form.messages[0]?.content ?? "";
+  }
+
+  return [...developerLine, ...form.messages.map(formatPromptMessage)].join("\n\n");
+};
+
+const formatPromptMessage = (message: MessageRow): string =>
+  `${message.role.slice(0, 1).toUpperCase()}${message.role.slice(1)}: ${message.content}`;
 
 const writeOllamaOptions = (
   options: JsonValue | undefined,

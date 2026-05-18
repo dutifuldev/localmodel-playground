@@ -35,6 +35,33 @@ describe("request form mapping", () => {
     });
   });
 
+  it("preserves additional system and developer messages during structured edits", () => {
+    const request = {
+      model: "local-chat",
+      messages: [
+        { role: "developer", content: "Primary developer." },
+        { role: "system", content: "Secondary system." },
+        { role: "user", content: "Ping" },
+        { role: "developer", content: "Extra developer." },
+      ],
+    };
+
+    const form = requestToFormState("openai.chat.completions.v1", request);
+
+    expect(form.developerMessage).toBe("Primary developer.");
+    expect(form.messages).toEqual([
+      { id: "message_1", role: "system", content: "Secondary system." },
+      { id: "message_2", role: "user", content: "Ping" },
+      { id: "message_3", role: "developer", content: "Extra developer." },
+    ]);
+    expect(formStateToRequest("openai.chat.completions.v1", request, form).messages).toEqual([
+      { role: "developer", content: "Primary developer." },
+      { role: "system", content: "Secondary system." },
+      { role: "user", content: "Ping" },
+      { role: "developer", content: "Extra developer." },
+    ]);
+  });
+
   it("maps Responses input and Ollama options to their native request fields", () => {
     const responses = formStateToRequest(
       "openai.responses.v1",
@@ -120,6 +147,40 @@ describe("request form mapping", () => {
         },
       ).stream,
     ).toBe(true);
+  });
+
+  it("folds prompt-api structured fields into native prompt fields", () => {
+    const completion = formStateToRequest(
+      "openai.completions.v1",
+      { model: "local", prompt: "" },
+      {
+        model: "local",
+        temperature: 0.2,
+        stream: false,
+        developerMessage: "Follow policy.",
+        messages: [
+          { id: "message_0", role: "user", content: "Draft" },
+          { id: "message_1", role: "assistant", content: "Previous answer" },
+        ],
+      },
+    );
+    expect(completion.prompt).toContain("Developer: Follow policy.");
+    expect(completion.prompt).toContain("User: Draft");
+    expect(completion.prompt).toContain("Assistant: Previous answer");
+
+    const ollama = formStateToRequest(
+      "ollama.generate.v1",
+      { model: "llama", prompt: "" },
+      {
+        model: "llama",
+        temperature: 0.2,
+        stream: true,
+        developerMessage: "System prompt",
+        messages: [{ id: "message_0", role: "user", content: "Generate" }],
+      },
+    );
+    expect(ollama.prompt).toBe("Generate");
+    expect(ollama["system"]).toBe("System prompt");
   });
 
   it("handles malformed or sparse requests with MVP defaults", () => {

@@ -108,12 +108,13 @@ const successfulRun = async (
     parsed.textOnly !== undefined
       ? { text: parsed.textOnly }
       : adapter.parseResponse(responseValue ?? {});
+  const metrics = parsedResponse.usage ? { latencyMs, ...parsedResponse.usage } : { latencyMs };
   const base = {
     ...baseRun(args, requestHash, startedAt),
     finishedAt,
     status: "succeeded",
     parsed: parsedResponse,
-    metrics: { latencyMs },
+    metrics,
   } satisfies RunRecord;
 
   return responseValue === undefined ? base : { ...base, response: responseValue };

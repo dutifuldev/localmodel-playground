@@ -130,6 +130,33 @@ describe("API shape adapters", () => {
     });
   });
 
+  it("parses OpenAI-compatible token usage into run metrics", () => {
+    expect(
+      parseChatCompletionsResponse({
+        choices: [{ message: { content: "chat" } }],
+        usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 },
+      }).usage,
+    ).toEqual({ promptTokens: 2, completionTokens: 3, totalTokens: 5 });
+
+    expect(
+      parseCompletionsResponse({
+        choices: [{ text: "completion" }],
+        usage: { prompt_tokens: 4 },
+      }).usage,
+    ).toEqual({ promptTokens: 4 });
+
+    expect(
+      parseResponsesResponse({
+        output_text: "response",
+        usage: { input_tokens: 6, output_tokens: 7, total_tokens: 13 },
+      }).usage,
+    ).toEqual({ promptTokens: 6, completionTokens: 7, totalTokens: 13 });
+
+    expect(
+      parseResponsesResponse({ output_text: "response", usage: {} }).usage,
+    ).toBeUndefined();
+  });
+
   it("covers defaults, detection edge cases, and parse fallbacks", () => {
     expect(adapterById("openai.chat.completions.v1").defaultRequest("model").model).toBe(
       "model",
