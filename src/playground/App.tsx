@@ -112,6 +112,10 @@ export const App = (): React.JSX.Element => {
     updateRequest(formStateToRequest(activeTab.apiShape, activeTab.request, next));
   };
 
+  const updateModel = (model: string): void => {
+    updateActiveTab({ model, request: { ...activeTab.request, model } });
+  };
+
   const updateComposerPrompt = (content: string): void => {
     updateForm({ ...formState, messages: writeComposerPrompt(formState.messages, content) });
   };
@@ -155,10 +159,11 @@ export const App = (): React.JSX.Element => {
 
     const tabId = activeTab.id;
     const controller = new AbortController();
+    const runId = `run_${String(Date.now())}`;
     abortControllersRef.current.set(tabId, controller);
     const pending: RunRecord = {
       schemaVersion: 1,
-      id: `run_${String(Date.now())}`,
+      id: runId,
       startedAt: new Date().toISOString(),
       endpointPresetId: activeEndpoint.id,
       apiShape: activeTab.apiShape,
@@ -172,7 +177,10 @@ export const App = (): React.JSX.Element => {
         endpoint: activeEndpoint,
         apiShape: activeTab.apiShape,
         request: activeTab.request,
+        runId,
         signal: controller.signal,
+        onProgress: (run) =>
+          dispatch({ type: "update-tab", tabId, patch: { currentRun: run } }),
       });
       dispatch({ type: "record-run", tabId, run });
     } catch (error) {
@@ -286,7 +294,7 @@ export const App = (): React.JSX.Element => {
               patch: { baseUrl },
             })
           }
-          onModelChange={(model) => updateForm({ ...formState, model })}
+          onModelChange={updateModel}
           onDiscoverModels={() => void loadModels()}
           onImportFile={(file) => void importSingle(file)}
           onImportFiles={(files) => void importFiles(files)}
@@ -407,10 +415,6 @@ const TopBar = (): React.JSX.Element => (
       <span className="muted">Browser-only</span>
     </div>
     <nav className="topnav" aria-label="Top navigation">
-      <a href="https://github.com/dutifuldev/localmodel-playground">GitHub</a>
-      <a href="https://github.com/dutifuldev/localmodel-playground/blob/main/docs/implementation-plan.md">
-        Docs
-      </a>
       <button className="avatar-button" type="button" aria-label="Settings">
         <Settings2 size={16} />
       </button>

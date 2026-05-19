@@ -85,6 +85,58 @@ describe("run service", () => {
     });
   });
 
+  it("emits streaming progress before the final run record", async () => {
+    const encoder = new TextEncoder();
+    let chunks = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            new ReadableStream<Uint8Array>({
+              pull(controller) {
+                chunks += 1;
+                if (chunks === 1) {
+                  controller.enqueue(
+                    encoder.encode('data: {"choices":[{"delta":{"content":"po"}}]}\n\n'),
+                  );
+                  return;
+                }
+                controller.enqueue(
+                  encoder.encode('data: {"choices":[{"delta":{"content":"ng"}}]}\n\n'),
+                );
+                controller.close();
+              },
+            }),
+          ),
+        ),
+      ),
+    );
+    const endpoint = defaultEndpointPresets[0];
+    expect(endpoint).toBeDefined();
+    if (!endpoint) {
+      return;
+    }
+
+    const progress: string[] = [];
+    const run = await runRequest({
+      endpoint,
+      apiShape: "openai.chat.completions.v1",
+      request: { model: "local", messages: [], stream: true },
+      runId: "run_progress",
+      onProgress: (partial) => {
+        expect(partial.id).toBe("run_progress");
+        expect(partial.status).toBe("running");
+        progress.push(partial.parsed?.text ?? "");
+      },
+    });
+
+    expect(progress).toEqual(["po", "pong"]);
+    expect(run.id).toBe("run_progress");
+    expect(run.status).toBe("succeeded");
+    expect(run.parsed?.text).toBe("pong");
+  });
+
   it("keeps partial streaming output when a response body is aborted", async () => {
     const encoder = new TextEncoder();
     let chunks = 0;

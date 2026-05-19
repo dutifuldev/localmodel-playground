@@ -9,7 +9,9 @@ export type RunRequestArgs = {
   readonly endpoint: EndpointPreset;
   readonly apiShape: RunRecord["apiShape"];
   readonly request: JsonObject;
+  readonly runId?: string;
   readonly signal?: AbortSignal;
+  readonly onProgress?: (run: RunRecord) => void;
 };
 
 export const runRequest = async (args: RunRequestArgs): Promise<RunRecord> => {
@@ -99,11 +101,33 @@ const successfulRun = async (
   streamKind: "none" | "sse" | "ndjson",
   response: Response,
 ): Promise<RunRecord> => {
-  const adapter = adapterById(args.apiShape);
-  const body = await readBody(response, streamKind);
-  const parsed = parseBody(streamKind, body.text);
+  const emitProgress = (text: string): void => {
+    const progress = runFromBody({
+      args,
+      requestHash,
+      startedAt,
+      started,
+      streamKind,
+      body: { status: "running", text },
+    });
+    args.onProgress?.(progress);
+  };
+  const body = await readBody(response, streamKind, emitProgress);
+  return runFromBody({ args, requestHash, startedAt, started, streamKind, body });
+};
+
+const runFromBody = (input: {
+  readonly args: RunRequestArgs;
+  readonly requestHash: string;
+  readonly startedAt: string;
+  readonly started: number;
+  readonly streamKind: "none" | "sse" | "ndjson";
+  readonly body: BodyReadResult;
+}): RunRecord => {
+  const adapter = adapterById(input.args.apiShape);
+  const parsed = parseBody(input.streamKind, input.body.text);
   const finishedAt = new Date().toISOString();
-  const latencyMs = Math.round(performance.now() - started);
+  const latencyMs = Math.round(performance.now() - input.started);
   const responseValue = parsed.response;
   const parsedResponse =
     parsed.textOnly !== undefined
@@ -111,12 +135,12 @@ const successfulRun = async (
       : adapter.parseResponse(responseValue ?? {});
   const metrics = parsedResponse.usage ? { latencyMs, ...parsedResponse.usage } : { latencyMs };
   const base = {
-    ...baseRun(args, requestHash, startedAt),
-    finishedAt,
-    status: body.status,
+    ...baseRun(input.args, input.requestHash, input.startedAt),
+    ...(input.body.status === "running" ? {} : { finishedAt }),
+    status: input.body.status,
     parsed: parsedResponse,
     metrics,
-    ...(body.status === "cancelled"
+    ...(input.body.status === "cancelled"
       ? { error: { kind: "unknown", message: "Run cancelled.", redacted: true } }
       : {}),
   } satisfies RunRecord;
@@ -125,22 +149,26 @@ const successfulRun = async (
 };
 
 type BodyReadResult = {
-  readonly status: "succeeded" | "cancelled";
+  readonly status: "running" | "succeeded" | "cancelled";
   readonly text: string;
 };
 
 const readBody = async (
   response: Response,
   streamKind: "none" | "sse" | "ndjson",
+  onProgress: (text: string) => void,
 ): Promise<BodyReadResult> => {
   if (streamKind === "none" || !response.body) {
     return { status: "succeeded", text: await response.text() };
   }
 
-  return readStreamingBody(response.body);
+  return readStreamingBody(response.body, onProgress);
 };
 
-const readStreamingBody = async (body: ReadableStream<Uint8Array>): Promise<BodyReadResult> => {
+const readStreamingBody = async (
+  body: ReadableStream<Uint8Array>,
+  onProgress: (text: string) => void,
+): Promise<BodyReadResult> => {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let text = "";
@@ -153,6 +181,7 @@ const readStreamingBody = async (body: ReadableStream<Uint8Array>): Promise<Body
         return { status: "succeeded", text };
       }
       text += decoder.decode(chunk.value, { stream: true });
+      onProgress(text);
     }
   } catch (error) {
     if (isAbortError(error)) {
@@ -206,7 +235,7 @@ const baseRun = (
   const model = typeof args.request.model === "string" ? args.request.model : undefined;
   const run = {
     schemaVersion: 1,
-    id: `run_${String(Date.now())}`,
+    id: args.runId ?? `run_${String(Date.now())}`,
     startedAt,
     endpointPresetId: args.endpoint.id,
     apiShape: args.apiShape,

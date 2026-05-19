@@ -1,4 +1,7 @@
 /* eslint-disable complexity */
+import { createServer, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
 import { expect, test } from "@playwright/test";
 
 test.describe("browser playground", () => {
@@ -51,12 +54,45 @@ test.describe("browser playground", () => {
 
     await page.goto("/");
     await page.getByLabel("Endpoint base URL").fill("http://127.0.0.1:4321/v1");
+    await page.getByLabel("Model").fill("chosen-model");
+    await expect(page.locator(".json-panel")).toContainText('"model": "chosen-model"');
     await page.getByLabel("Chat composer").fill("Say pong through the composer.");
     await page.getByLabel("Run").click();
 
     await expect(page.getByText("succeeded")).toBeVisible();
     await expect(page.locator(".run-output pre").filter({ hasText: "pong" })).toBeVisible();
     expect(requestBody).toContain("Say pong through the composer.");
+    expect(requestBody).toContain("chosen-model");
+  });
+
+  test("renders streaming output while a local endpoint is still responding", async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Desktop streaming check.");
+
+    let finishStream: () => void = () => undefined;
+    const finishStreamPromise = new Promise<void>((resolve) => {
+      finishStream = resolve;
+    });
+    const server = createStreamingServer(finishStreamPromise);
+    const port = await listen(server);
+    try {
+      await page.goto("/");
+      await page.getByLabel("Endpoint base URL").fill(`http://127.0.0.1:${String(port)}/v1`);
+      await page.getByLabel("Model").fill("stream-model");
+      await page.getByLabel("Chat composer").fill("Stream a response.");
+      await page.getByLabel("Run").click();
+
+      await expect(page.getByLabel("Stop")).toBeVisible();
+      await expect(page.locator(".run-output pre").filter({ hasText: "hello" })).toBeVisible();
+      finishStream();
+      await expect(
+        page.locator(".run-output pre").filter({ hasText: "hello world" }),
+      ).toBeVisible();
+      await expect(page.getByText("succeeded")).toBeVisible();
+    } finally {
+      await closeServer(server);
+    }
   });
 
   test("keeps the full playground usable on mobile", async ({ page }, testInfo) => {
@@ -74,3 +110,47 @@ test.describe("browser playground", () => {
     expect(documentWidth).toBeLessThanOrEqual(viewportWidth + 2);
   });
 });
+
+const createStreamingServer = (finishStream: Promise<void>): Server =>
+  createServer((request, response) => {
+    if (request.method === "OPTIONS") {
+      response
+        .writeHead(204, {
+          "access-control-allow-origin": "*",
+          "access-control-allow-headers": "*",
+          "access-control-allow-methods": "POST, OPTIONS",
+        })
+        .end();
+      return;
+    }
+
+    if (request.method !== "POST" || request.url !== "/v1/chat/completions") {
+      response.writeHead(404).end();
+      return;
+    }
+
+    response.writeHead(200, {
+      "access-control-allow-origin": "*",
+      "content-type": "text/event-stream",
+    });
+    response.write('data: {"choices":[{"delta":{"content":"hello"}}]}\n\n');
+    void finishStream.then(() => {
+      response.write('data: {"choices":[{"delta":{"content":" world"}}]}\n\n');
+      response.end("data: [DONE]\n\n");
+    });
+  });
+
+const listen = (server: Server): Promise<number> =>
+  new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", reject);
+      const address = server.address() as AddressInfo;
+      resolve(address.port);
+    });
+  });
+
+const closeServer = (server: Server): Promise<void> =>
+  new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
