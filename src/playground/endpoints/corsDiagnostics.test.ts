@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { explainEndpointError } from "./corsDiagnostics";
+import { endpointScopeHint, explainEndpointError } from "./corsDiagnostics";
 import { endpointSupportsShape, normalizeBaseUrl } from "./providers";
 import { defaultEndpointPresets } from "./providers";
 
@@ -17,9 +17,23 @@ describe("endpoint helpers", () => {
   });
 
   it("explains browser endpoint failures with CORS guidance", () => {
-    expect(
-      explainEndpointError(new Error("Failed to fetch"), "http://localhost:1234/v1"),
-    ).toContain("allows browser CORS requests");
+    const explanation = explainEndpointError(
+      new Error("Failed to fetch"),
+      "http://localhost:1234/v1",
+    );
+
+    expect(explanation).toContain("allows browser CORS requests");
+    expect(explanation).toContain("same device as the browser");
     expect(explainEndpointError("plain failure", "http://localhost")).toBe("plain failure");
+  });
+
+  it("warns when a remote app origin is configured with a loopback endpoint", () => {
+    expect(endpointScopeHint("100.119.251.79", "http://127.0.0.1:1234/v1")).toContain(
+      "browser device",
+    );
+    expect(endpointScopeHint("localhost", "http://127.0.0.1:1234/v1")).toBeUndefined();
+    expect(
+      endpointScopeHint("100.119.251.79", "http://100.119.251.79:1234/v1"),
+    ).toBeUndefined();
   });
 });

@@ -22,6 +22,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { examples } from "../examples/examples";
 import { isJsonObject, parseJson, stableStringify, type JsonObject } from "../shared/json";
 import type { EndpointPreset, PlaygroundTab, RunRecord } from "../shared/types";
+import { endpointScopeHint } from "./endpoints/corsDiagnostics";
 import { discoverModels } from "./endpoints/modelDiscovery";
 import { endpointSupportsShape } from "./endpoints/providers";
 import { canPickDirectory, pickDirectoryRequests } from "./files/directoryImport";
@@ -54,6 +55,7 @@ export const App = (): React.JSX.Element => {
   );
   const activeTabId = activeTab?.id;
   const activeRequest = activeTab?.request;
+  const appHost = window.location.hostname;
 
   useEffect(() => {
     savePlaygroundState(state);
@@ -256,6 +258,7 @@ export const App = (): React.JSX.Element => {
       <main className="workspace">
         <Sidebar
           activeEndpoint={activeEndpoint}
+          appHost={appHost}
           endpoints={state.endpointPresets}
           models={models}
           modelStatus={modelStatus}
@@ -402,6 +405,7 @@ const TopBar = (): React.JSX.Element => (
 
 type SidebarProps = {
   readonly activeEndpoint: EndpointPreset;
+  readonly appHost: string;
   readonly endpoints: readonly EndpointPreset[];
   readonly models: readonly string[];
   readonly modelStatus: string;
@@ -436,6 +440,11 @@ const Sidebar = (props: SidebarProps): React.JSX.Element => (
         onChange={(event) => props.onEndpointBaseUrlChange(event.currentTarget.value)}
         aria-label="Endpoint base URL"
       />
+      {endpointScopeHint(props.appHost, props.activeEndpoint.baseUrl) ? (
+        <p className="hint warning">
+          {endpointScopeHint(props.appHost, props.activeEndpoint.baseUrl)}
+        </p>
+      ) : null}
       <button type="button" className="full-button" onClick={props.onDiscoverModels}>
         Discover models
       </button>

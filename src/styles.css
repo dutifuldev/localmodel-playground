@@ -120,6 +120,10 @@ textarea {
   color: var(--text-muted);
 }
 
+.hint.warning {
+  color: var(--warning);
+}
+
 .topnav a {
   padding: 7px 10px;
   border-radius: var(--radius);
