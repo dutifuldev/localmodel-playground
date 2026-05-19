@@ -85,11 +85,13 @@ test.describe("browser playground", () => {
 
       await expect(page.getByLabel("Stop")).toBeVisible();
       await expect(page.locator(".run-output pre").filter({ hasText: "hello" })).toBeVisible();
+      await expect(page.locator(".run-status")).toContainText(/tok\/s/u);
       finishStream();
       await expect(
         page.locator(".run-output pre").filter({ hasText: "hello world" }),
       ).toBeVisible();
       await expect(page.getByText("succeeded")).toBeVisible();
+      await expect(page.locator(".run-status")).toContainText(/ms/u);
     } finally {
       await closeServer(server);
     }

@@ -836,9 +836,31 @@ const RunStatusHeader = (props: { readonly run: RunRecord }): React.JSX.Element 
   <div className="run-status">
     <span className={`status-dot ${props.run.status}`} />
     <strong>{props.run.status}</strong>
-    {props.run.metrics?.latencyMs ? <span>{props.run.metrics.latencyMs}ms</span> : null}
+    <RunStatusMetric run={props.run} />
   </div>
 );
+
+const RunStatusMetric = (props: { readonly run: RunRecord }): React.JSX.Element | null => {
+  if (props.run.status === "running") {
+    return <span>{streamingRateLabel(props.run)}</span>;
+  }
+
+  return props.run.metrics?.latencyMs ? <span>{props.run.metrics.latencyMs}ms</span> : null;
+};
+
+const streamingRateLabel = (run: RunRecord): string => {
+  const tokens = estimateOutputTokens(run.parsed?.text ?? "");
+  const elapsedSeconds = Math.max((run.metrics?.latencyMs ?? elapsedRunMs(run)) / 1000, 0.001);
+  return `${String(Math.round(tokens / elapsedSeconds))} tok/s`;
+};
+
+const elapsedRunMs = (run: RunRecord): number =>
+  Math.max(Date.now() - Date.parse(run.startedAt), 0);
+
+const estimateOutputTokens = (text: string): number => {
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/u).length : 0;
+};
 
 const RunContent = (props: {
   readonly run: RunRecord;
