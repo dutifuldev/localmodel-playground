@@ -524,10 +524,6 @@ const Sidebar = (props: SidebarProps): React.JSX.Element => (
         </button>
       ))}
     </section>
-    <section className="billing-note">
-      <strong>CORS required</strong>
-      <p>Local endpoints must allow browser origins. This app never proxies requests.</p>
-    </section>
   </aside>
 );
 
