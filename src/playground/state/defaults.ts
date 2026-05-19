@@ -25,7 +25,7 @@ export const createDefaultTab = (index: number): PlaygroundTab => {
   if (!endpoint) {
     throw new Error("Missing default endpoint");
   }
-  const model = "local-model";
+  const model = "gemma-local";
   const apiShape = "openai.chat.completions.v1";
   return {
     schemaVersion: 1,

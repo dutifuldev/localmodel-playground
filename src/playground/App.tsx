@@ -24,7 +24,7 @@ import { isJsonObject, parseJson, stableStringify, type JsonObject } from "../sh
 import type { EndpointPreset, PlaygroundTab, RunRecord } from "../shared/types";
 import { endpointScopeHint } from "./endpoints/corsDiagnostics";
 import { discoverModels } from "./endpoints/modelDiscovery";
-import { endpointSupportsShape } from "./endpoints/providers";
+import { endpointForAppHost, endpointSupportsShape } from "./endpoints/providers";
 import { canPickDirectory, pickDirectoryRequests } from "./files/directoryImport";
 import { downloadJson, runRecordFileName, tabToPromptWorkspace } from "./files/fileExport";
 import { importManyFiles, importRequestFile, type ImportedRequest } from "./files/fileImport";
@@ -41,6 +41,23 @@ import { loadPlaygroundState, savePlaygroundState } from "./state/storage";
 const errorMessage = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
+const findActiveEndpoint = (
+  endpoints: readonly EndpointPreset[],
+  endpointPresetId: string | undefined,
+  appHost: string,
+): EndpointPreset | undefined => {
+  const endpoint = endpoints.find((item) => item.id === endpointPresetId);
+  return endpoint ? endpointForAppHost(endpoint, appHost) : undefined;
+};
+
+const modelDiscoveryStatusMessage = (models: readonly string[]): string =>
+  models.length ? `${String(models.length)} models found` : "No models returned";
+
+const findActiveTab = (
+  tabs: readonly PlaygroundTab[],
+  activeTabId: string,
+): PlaygroundTab | undefined => tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
 export const App = (): React.JSX.Element => {
   const [state, dispatch] = useReducer(playgroundReducer, undefined, loadPlaygroundState);
   const [rawJson, setRawJson] = useState("");
@@ -49,13 +66,15 @@ export const App = (): React.JSX.Element => {
   const [modelStatus, setModelStatus] = useState("Manual model entry available");
   const abortControllersRef = useRef(new Map<string, AbortController>());
 
-  const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId) ?? state.tabs[0];
-  const activeEndpoint = state.endpointPresets.find(
-    (endpoint) => endpoint.id === activeTab?.endpointPresetId,
-  );
+  const activeTab = findActiveTab(state.tabs, state.activeTabId);
   const activeTabId = activeTab?.id;
   const activeRequest = activeTab?.request;
   const appHost = window.location.hostname;
+  const activeEndpoint = findActiveEndpoint(
+    state.endpointPresets,
+    activeTab?.endpointPresetId,
+    appHost,
+  );
 
   useEffect(() => {
     savePlaygroundState(state);
@@ -102,11 +121,7 @@ export const App = (): React.JSX.Element => {
     const result = await discoverModels(activeEndpoint);
     if (result.ok) {
       setModels(result.models);
-      setModelStatus(
-        result.models.length
-          ? `${String(result.models.length)} models found`
-          : "No models returned",
-      );
+      setModelStatus(modelDiscoveryStatusMessage(result.models));
     } else {
       setModelStatus(result.message);
     }

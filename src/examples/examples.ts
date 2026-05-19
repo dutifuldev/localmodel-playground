@@ -12,7 +12,7 @@ export const examples: readonly ExampleRequest[] = [
     title: "LM Studio chat",
     apiShape: "openai.chat.completions.v1",
     request: {
-      model: "local-model",
+      model: "gemma-local",
       messages: [
         { role: "developer", content: "You are concise and precise." },
         { role: "user", content: "Reply with exactly: pong" },

@@ -1,3 +1,5 @@
+import { isLoopbackHost } from "./providers";
+
 export const explainEndpointError = (error: unknown, url: string): string => {
   const message = error instanceof Error ? error.message : String(error);
 
@@ -39,6 +41,3 @@ const isLoopbackEndpoint = (url: string): boolean => {
     return false;
   }
 };
-
-const isLoopbackHost = (host: string): boolean =>
-  host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";

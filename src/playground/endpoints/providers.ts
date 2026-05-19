@@ -53,3 +53,36 @@ export const normalizeBaseUrl = (baseUrl: string): string => baseUrl.replace(/\/
 
 export const endpointSupportsShape = (endpoint: EndpointPreset, shape: ApiShapeId): boolean =>
   endpoint.supportedShapes.includes(shape);
+
+export const endpointForAppHost = (
+  endpoint: EndpointPreset,
+  appHost: string,
+): EndpointPreset => {
+  const baseUrl = endpointBaseUrlForAppHost(endpoint, appHost);
+  return baseUrl === endpoint.baseUrl ? endpoint : { ...endpoint, baseUrl };
+};
+
+export const endpointBaseUrlForAppHost = (
+  endpoint: EndpointPreset,
+  appHost: string,
+): string => {
+  if (isLoopbackHost(appHost) || !isDefaultLoopbackEndpoint(endpoint)) {
+    return endpoint.baseUrl;
+  }
+
+  try {
+    const url = new URL(endpoint.baseUrl);
+    url.hostname = appHost;
+    return url.toString().replace(/\/$/u, "");
+  } catch {
+    return endpoint.baseUrl;
+  }
+};
+
+export const isLoopbackHost = (host: string): boolean =>
+  host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+
+const isDefaultLoopbackEndpoint = (endpoint: EndpointPreset): boolean =>
+  defaultEndpointPresets.some(
+    (preset) => preset.id === endpoint.id && preset.baseUrl === endpoint.baseUrl,
+  );

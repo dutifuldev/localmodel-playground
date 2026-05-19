@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { endpointScopeHint, explainEndpointError } from "./corsDiagnostics";
-import { endpointSupportsShape, normalizeBaseUrl } from "./providers";
+import {
+  endpointBaseUrlForAppHost,
+  endpointSupportsShape,
+  normalizeBaseUrl,
+} from "./providers";
 import { defaultEndpointPresets } from "./providers";
 
 describe("endpoint helpers", () => {
@@ -35,5 +39,24 @@ describe("endpoint helpers", () => {
     expect(
       endpointScopeHint("100.119.251.79", "http://100.119.251.79:1234/v1"),
     ).toBeUndefined();
+  });
+
+  it("rewrites default loopback endpoint presets for remote app hosts", () => {
+    const lmStudio = defaultEndpointPresets[0];
+    expect(lmStudio).toBeDefined();
+    if (!lmStudio) {
+      return;
+    }
+
+    expect(endpointBaseUrlForAppHost(lmStudio, "100.119.251.79")).toBe(
+      "http://100.119.251.79:1234/v1",
+    );
+    expect(endpointBaseUrlForAppHost(lmStudio, "localhost")).toBe("http://127.0.0.1:1234/v1");
+    expect(
+      endpointBaseUrlForAppHost(
+        { ...lmStudio, baseUrl: "http://127.0.0.1:9000/v1" },
+        "100.119.251.79",
+      ),
+    ).toBe("http://127.0.0.1:9000/v1");
   });
 });
