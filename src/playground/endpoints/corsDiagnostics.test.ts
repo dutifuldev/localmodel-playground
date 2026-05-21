@@ -41,7 +41,7 @@ describe("endpoint helpers", () => {
     ).toBeUndefined();
   });
 
-  it("rewrites default loopback endpoint presets for remote app hosts", () => {
+  it("rewrites loopback endpoint presets for remote app hosts", () => {
     const lmStudio = defaultEndpointPresets[0];
     expect(lmStudio).toBeDefined();
     if (!lmStudio) {
@@ -57,6 +57,6 @@ describe("endpoint helpers", () => {
         { ...lmStudio, baseUrl: "http://127.0.0.1:9000/v1" },
         "100.119.251.79",
       ),
-    ).toBe("http://127.0.0.1:9000/v1");
+    ).toBe("http://100.119.251.79:9000/v1");
   });
 });

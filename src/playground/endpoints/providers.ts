@@ -66,7 +66,7 @@ export const endpointBaseUrlForAppHost = (
   endpoint: EndpointPreset,
   appHost: string,
 ): string => {
-  if (isLoopbackHost(appHost) || !isDefaultLoopbackEndpoint(endpoint)) {
+  if (isLoopbackHost(appHost) || !isLoopbackEndpoint(endpoint.baseUrl)) {
     return endpoint.baseUrl;
   }
 
@@ -82,7 +82,10 @@ export const endpointBaseUrlForAppHost = (
 export const isLoopbackHost = (host: string): boolean =>
   host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
 
-const isDefaultLoopbackEndpoint = (endpoint: EndpointPreset): boolean =>
-  defaultEndpointPresets.some(
-    (preset) => preset.id === endpoint.id && preset.baseUrl === endpoint.baseUrl,
-  );
+const isLoopbackEndpoint = (baseUrl: string): boolean => {
+  try {
+    return isLoopbackHost(new URL(baseUrl).hostname);
+  } catch {
+    return false;
+  }
+};
